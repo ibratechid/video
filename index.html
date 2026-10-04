@@ -24,14 +24,19 @@ body.render{display:block}body.render aside,body.render main>*:not(#stage){displ
 <button class="g" id="sample">Use sample data</button><button class="g" id="dlsample">Download sample CSV</button>
 <small><br>Wide: <code>date,A,B,C</code> per period row. Long: <code>date,name,value</code>.</small>
 <h2>Video</h2><div id="fields"></div>
+<h2>Bar icons</h2>
+<label>Upload images named like each series (e.g. Japan.png, Instagram.png)</label><input type="file" id="icons" accept="image/*" multiple>
+<label>Or emoji (one per line: Name=emoji)</label><textarea id="emoji"></textarea>
 <label>Text overlays (one per line: text|x%|y%|size|color)</label>
 <textarea id="overlays" placeholder="SUBSCRIBE FOR MORE!|50|97|28|#e11d48"></textarea>
 <h2>Music</h2>
 <label>Preview file (final render always uses <code>assets/music.mp3</code>)</label><input type="file" id="music" accept="audio/*">
 <div class="row"><div><label>Volume (0–1)</label><input type="number" id="vol" step=".1" min="0" max="1"></div><div><label>Fade-out (sec)</label><input type="number" id="fade" min="0"></div></div>
 <h2>Thumbnail (1280×720)</h2>
-<label>Title (use | for a new line)</label><input id="thTitle"><label>Badge text</label><input id="thSub">
-<div class="row"><div><label>Title color</label><input type="color" id="thColor"></div><div><label>Background frame (%)</label><input type="number" id="thT" min="0" max="100"></div></div>
+<label>Title (use | for new lines)</label><input id="thTitle">
+<label>Line colors (comma separated)</label><input id="thColors">
+<div class="row"><div><label>Year range</label><input id="thRange"></div><div><label>Badge (top-right)</label><input id="thBadge"></div></div>
+<label>Bars frame (% of video)</label><input type="number" id="thT" min="0" max="100">
 <label>Add photos / assets (multiple)</label><input type="file" id="imgs" accept="image/*" multiple>
 <label>Selected photo size</label><input type="range" id="isz" min="80" max="1200" value="380">
 <button class="g" id="idel">Delete selected</button><small><br>Drag photos on the preview to position them.</small>
@@ -62,7 +67,7 @@ const SAMPLE=`date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram
 2022,1900,2600,1900,2900,2500,700
 2023,2000,2700,2300,3000,2700,800
 2024,2200,2800,2700,3050,2900,950`;
-const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',overlays:'',csv:SAMPLE,thTitle:'WHO WINS?|2015–2024',thSub:'BAR CHART RACE',thColor:'#e11d48',thT:100,vol:.8,fade:3};
+const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',overlays:'',csv:SAMPLE,thTitle:'Biggest|Social Apps|Ever',thColors:'#16a34a,#e11d48,#2563eb',thRange:'2015–2024',thBadge:'2026',thT:100,icons:{},emoji:'Instagram=📸\nYouTube=▶️\nTikTok=🎵\nFacebook=👍\nWhatsApp=💬\nTelegram=✈️',vol:.8,fade:3};
 const BG='#F7F5EF',INK='#1b1f2a',MUT='#6b7280',FF='system-ui,"Noto Sans","Liberation Sans",sans-serif';
 const FD=[['title','Title','text'],['sub','Subtitle','text'],['src','Source note','text'],['unit','Value suffix (e.g. " M")','text'],['topN','Bars shown','number'],['dur','Duration (sec)','number'],['fps','FPS','number'],['accent','Accent color','color']];
 $('fields').innerHTML=FD.map(f=>`<label>${f[1]}</label><input id="f_${f[0]}" type="${f[2]}">`).join('');
@@ -79,37 +84,47 @@ function parse(txt){
 const col=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%360;return`hsl(${h},68%,52%)`};
 const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,lerp=(a,b,f)=>a+(b-a)*f;
 const fmt=v=>Math.round(v).toLocaleString('en-US')+(S.unit||'');
+let ICON={},EM={};
+function setMaps(){EM={};S.emoji.split('\n').forEach(l=>{const[a,b]=l.split('=');if(b)EM[a.trim().toLowerCase()]=b.trim()})}
+function loadIcons(){ICON={};return Promise.all(Object.entries(S.icons||{}).map(([n,u])=>new Promise(r=>{const i=new Image();i.onload=i.onerror=r;i.src=u;ICON[n.toLowerCase()]=i})))}
+function state(t){const n=D.dates.length,tt=Math.min(1,t/.92),p=n>1?tt*(n-1):0,k=Math.min(Math.floor(p),Math.max(n-2,0)),k2=Math.min(k+1,n-1),f=p-k,e=ease(f),b=D.dates[k2];
+ return{p,mx:lerp(D.max[k],D.max[k2],e)||1,lab:(!isNaN(D.dates[k])&&!isNaN(b))?Math.round(lerp(+D.dates[k],+b,f)):D.dates[Math.round(p)],
+ items:D.names.map((nm,i)=>({nm,v:lerp(D.vals[k][i],D.vals[k2][i],e),r:lerp(D.ranks[k][i],D.ranks[k2][i],e)}))}}
+const nice=x=>{const p=Math.pow(10,Math.floor(Math.log10(x))),m=x/p;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*p};
+function icon(g,nm,x,y,s){const k=nm.toLowerCase(),im=ICON[k];if(im&&im.naturalWidth){g.drawImage(im,x,y,s,s);return s}if(EM[k]){g.font=`${s*.82}px `+FF;g.textAlign='left';g.fillText(EM[k],x,y+s*.82);return s}return 0}
+function wrap(g,txt,w){const L=[];let c='';txt.split(' ').forEach(x=>{const t=c?c+' '+x:x;if(g.measureText(t).width>w&&c){L.push(c);c=x}else c=t});L.push(c);return L}
 function draw(g,w,h,t){
- g.save();g.scale(w/1920,h/1080);g.fillStyle=BG;g.fillRect(0,0,1920,1080);
- g.textBaseline='alphabetic';g.textAlign='left';g.fillStyle=INK;g.font='800 56px '+FF;g.fillText(S.title,80,95);
- g.fillStyle=MUT;g.font='500 28px '+FF;g.fillText(S.sub,80,142);
+ g.save();g.scale(w/1920,h/1080);g.fillStyle=BG;g.fillRect(0,0,1920,1080);g.textBaseline='alphabetic';
  if(D){
-  const n=D.dates.length,tt=Math.min(1,t/.92),p=n>1?tt*(n-1):0,k=Math.min(Math.floor(p),Math.max(n-2,0)),k2=Math.min(k+1,n-1),f=p-k,e=ease(f);
-  const N=+S.topN,top=200,rh=(905-top)/N,x0=430,mw=1230,mx=lerp(D.max[k],D.max[k2],f)||1;
-  g.strokeStyle='#e4e0d5';g.lineWidth=2;g.beginPath();g.moveTo(x0,top-10);g.lineTo(x0,905);g.stroke();
-  D.names.map((nm,i)=>({nm,v:lerp(D.vals[k][i],D.vals[k2][i],e),r:lerp(D.ranks[k][i],D.ranks[k2][i],e)})).filter(o=>o.r<N+.6).sort((a,b)=>b.r-a.r).forEach(o=>{
-   const y=top+o.r*rh,bh=rh*.74,w2=Math.max(6,o.v/mx*mw);g.globalAlpha=Math.max(0,Math.min(1,N+.6-o.r));
-   g.fillStyle=col(o.nm);g.beginPath();g.roundRect(x0,y,w2,bh,10);g.fill();
-   g.fillStyle=INK;g.font=`700 ${Math.min(30,bh*.55)}px `+FF;g.textAlign='right';g.fillText(o.nm,x0-16,y+bh*.66);
-   g.textAlign='left';g.fillText(fmt(o.v),x0+w2+14,y+bh*.66);g.globalAlpha=1});
-  const b=D.dates[k2],lab=(!isNaN(D.dates[k])&&!isNaN(b))?Math.round(lerp(+D.dates[k],+b,f)):D.dates[Math.round(p)];
-  g.textAlign='right';g.fillStyle=INK;g.font='900 150px '+FF;g.fillText(lab,1850,1040);
-  const cx=1370,cy=985,r=58,ang=p*Math.PI*2;
-  g.fillStyle='#fff';g.strokeStyle=S.accent;g.lineWidth=6;g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.stroke();
-  for(let i=0;i<12;i++){const q=i*Math.PI/6;g.beginPath();g.moveTo(cx+Math.sin(q)*(r-11),cy-Math.cos(q)*(r-11));g.lineTo(cx+Math.sin(q)*(r-4),cy-Math.cos(q)*(r-4));g.lineWidth=3;g.stroke()}
-  [[ang,r-14,4],[ang/12,r-28,6]].forEach(([q,l,wd])=>{g.strokeStyle=INK;g.lineWidth=wd;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.sin(q)*l,cy-Math.cos(q)*l);g.stroke()});
-  const sec=Math.floor(t*S.dur);g.fillStyle=MUT;g.font='600 26px ui-monospace,monospace';g.textAlign='right';g.fillText(Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'),cx-r-22,cy+9);
+  const s=state(t),N=+S.topN,top=125,bot=1000,rh=(bot-top)/N,x0=330,mw=900,st=nice(s.mx/4);
+  g.font='500 20px '+FF;g.textAlign='center';g.lineWidth=1.5;g.setLineDash([4,6]);
+  for(let v=0;v<=s.mx;v+=st){const x=x0+v/s.mx*mw;g.strokeStyle='#dcd8cc';g.beginPath();g.moveTo(x,112);g.lineTo(x,bot);g.stroke();g.fillStyle=MUT;g.fillText(v.toLocaleString('en-US'),x,98)}
+  g.setLineDash([]);
+  s.items.filter(o=>o.r<N+.6).sort((a,b)=>b.r-a.r).forEach(o=>{
+   const y=top+o.r*rh,bh=rh*.76,w2=Math.max(6,o.v/s.mx*mw);g.globalAlpha=Math.max(0,Math.min(1,N+.6-o.r));
+   g.fillStyle=col(o.nm);g.beginPath();g.roundRect(x0,y,w2,bh,8);g.fill();
+   const is=icon(g,o.nm,x0+w2+10,y+bh*.04,bh*.92);
+   g.fillStyle=INK;g.font=`600 ${Math.min(28,bh*.5)}px `+FF;g.textAlign='right';g.fillText(o.nm,x0-14,y+bh*.64);
+   g.textAlign='left';g.fillText(fmt(o.v),x0+w2+(is?is+20:14),y+bh*.64);g.globalAlpha=1});
+  g.textAlign='right';g.fillStyle=INK;g.font='900 190px '+FF;g.fillText(s.lab,1860,1010);
+  const cx=1330,cy=935,r=62,ang=s.p*Math.PI*2;
+  g.fillStyle='#fff';g.strokeStyle=MUT;g.lineWidth=7;g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.stroke();
+  for(let i=0;i<12;i++){const q=i*Math.PI/6;g.beginPath();g.moveTo(cx+Math.sin(q)*(r-12),cy-Math.cos(q)*(r-12));g.lineTo(cx+Math.sin(q)*(r-5),cy-Math.cos(q)*(r-5));g.lineWidth=3;g.stroke()}
+  [[ang,r-15,5],[ang/12,r-30,7]].forEach(([q,l,wd])=>{g.strokeStyle=INK;g.lineWidth=wd;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.sin(q)*l,cy-Math.cos(q)*l);g.stroke()});
+  const sec=Math.floor(t*S.dur);g.fillStyle=MUT;g.font='600 22px ui-monospace,monospace';g.textAlign='center';g.fillText(Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'),cx,cy+r+32);
  }
- g.textAlign='left';g.fillStyle=MUT;g.font='500 22px '+FF;g.fillText(S.src,80,1040);
+ g.textAlign='left';g.fillStyle=INK;g.font='900 66px '+FF;let y=400;wrap(g,S.title,500).forEach(l=>{g.fillText(l,1390,y);y+=76});
+ g.fillStyle=MUT;g.font='500 26px '+FF;wrap(g,S.sub,500).forEach(l=>{g.fillText(l,1392,y);y+=34});
+ g.font='500 20px '+FF;g.fillText(S.src,80,1055);
  S.overlays.split('\n').filter(Boolean).forEach(l=>{const[tx,x=50,y=50,sz=32,c=INK]=l.split('|');g.font=`800 ${sz}px `+FF;g.fillStyle=c;g.textAlign='center';g.fillText(tx,1920*x/100,1080*y/100)});
  g.restore();
 }
 const render=t=>{draw(X,1920,1080,t);afx(t)};
 window.renderFrame=render;
-window.loadConfig=c=>{Object.assign(S,c);D=parse(S.csv);sync();render(0)};
-function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);['overlays','thTitle','thSub','thColor','thT','vol','fade'].forEach(i=>$(i).value=S[i])}
+window.loadConfig=async c=>{Object.assign(S,c);D=parse(S.csv);setMaps();await loadIcons();sync();render(0)};
+function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);['overlays','emoji','thTitle','thColors','thRange','thBadge','thT','vol','fade'].forEach(i=>$(i).value=S[i])}
 FD.forEach(f=>$('f_'+f[0]).oninput=e=>{S[f[0]]=f[2]==='number'?+e.target.value:e.target.value;render(cur);thumb()});
-['overlays','thTitle','thSub','thColor','thT'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;render(cur);thumb()});
+['overlays','emoji','thTitle','thColors','thRange','thBadge','thT'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;setMaps();render(cur);thumb()});
 ['vol','fade'].forEach(i=>$(i).oninput=e=>{S[i]=+e.target.value});
 let cur=0,playing=false,t0=0;
 const aud=new Audio();aud.loop=true;let ctx,gn,dst;
@@ -130,12 +145,20 @@ $('dlsample').onclick=()=>dl(URL.createObjectURL(new Blob([SAMPLE])),'sample.csv
 $('cfg').onclick=()=>dl(URL.createObjectURL(new Blob([JSON.stringify(S,null,1)])),'video-01.json');
 // thumbnail with draggable photos
 const IM=[];let sel=-1,drag=null;const tc=$('tc');
-function thumb(exp){const g=tc.getContext('2d');draw(g,1280,720,S.thT/100);g.fillStyle='rgba(247,245,239,.84)';g.fillRect(0,0,1280,720);
- IM.forEach((o,i)=>{const w=o.s,h=w*o.img.height/o.img.width;g.save();g.shadowColor='rgba(0,0,0,.28)';g.shadowBlur=26;g.drawImage(o.img,o.x-w/2,o.y-h/2,w,h);g.restore();
+function thumb(exp){const g=tc.getContext('2d');g.fillStyle=BG;g.fillRect(0,0,1280,720);
+ if(D){const s=state(S.thT/100),N=9,rh=705/N;
+  s.items.filter(o=>o.r<N).sort((a,b)=>b.r-a.r).forEach(o=>{const y=8+o.r*rh,bh=rh*.86,w=Math.max(30,o.v/s.mx*1000);g.fillStyle=col(o.nm);g.beginPath();g.roundRect(-20,y,w+20,bh,12);g.fill();
+   const is=icon(g,o.nm,w+10,y+bh*.04,bh*.92);g.fillStyle=INK;g.font=`900 ${bh*.42}px `+FF;g.textAlign='left';g.fillText(fmt(o.v),w+20+is,y+bh*.66)})}
+ IM.forEach((o,i)=>{const w=o.s,h=w*o.img.height/o.img.width;g.save();g.shadowColor='rgba(0,0,0,.3)';g.shadowBlur=26;g.drawImage(o.img,o.x-w/2,o.y-h/2,w,h);g.restore();
   if(i===sel&&!exp){g.strokeStyle=S.accent;g.lineWidth=4;g.strokeRect(o.x-w/2,o.y-h/2,w,h)}});
- g.textAlign='center';g.lineJoin='round';g.font='900 120px '+FF;g.lineWidth=18;g.strokeStyle='#fff';g.fillStyle=S.thColor;
- S.thTitle.split('|').forEach((l,i)=>{g.strokeText(l,640,135+i*125);g.fillText(l,640,135+i*125)});
- g.font='800 40px '+FF;const tw=g.measureText(S.thSub).width+60;g.fillStyle=INK;g.beginPath();g.roundRect(640-tw/2,624,tw,64,32);g.fill();g.fillStyle='#fff';g.fillText(S.thSub,640,669)}
+ g.lineJoin='round';g.textAlign='left';g.font='900 104px '+FF;g.lineWidth=18;g.strokeStyle='#fff';const cs=S.thColors.split(',');
+ S.thTitle.split('|').forEach((l,i)=>{g.fillStyle=(cs[i%cs.length]||INK).trim();g.strokeText(l,690,380+i*112);g.fillText(l,690,380+i*112)});
+ g.textAlign='right';g.font='900 96px '+FF;g.strokeStyle='#fff';g.lineWidth=16;g.fillStyle=INK;g.strokeText(S.thRange,1250,700);g.fillText(S.thRange,1250,700);
+ if(S.thBadge){g.save();g.translate(1110,115);g.rotate(-.1);g.beginPath();g.roundRect(-125,-62,250,124,34);g.fillStyle='#6d28d9';g.fill();g.lineWidth=10;g.strokeStyle='#fff';g.stroke();g.textAlign='center';g.font='900 92px '+FF;g.fillStyle='#fff';g.fillText(S.thBadge,0,32);g.restore()}}
+$('icons').onchange=async e=>{for(const f of e.target.files){const base=f.name.replace(/\.[^.]+$/,''),nm=(D&&D.names.find(n=>n.toLowerCase()===base.toLowerCase()))||base;
+ const img=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=URL.createObjectURL(f)});const c=document.createElement('canvas');c.width=c.height=96;
+ const k=Math.min(96/img.width,96/img.height),w=img.width*k,h=img.height*k;c.getContext('2d').drawImage(img,(96-w)/2,(96-h)/2,w,h);S.icons[nm]=c.toDataURL('image/png')}
+ await loadIcons();render(cur);thumb()};
 const pt=e=>{const r=tc.getBoundingClientRect();return[(e.clientX-r.left)*1280/r.width,(e.clientY-r.top)*720/r.height]};
 tc.onpointerdown=e=>{const[x,y]=pt(e);sel=-1;for(let i=IM.length-1;i>=0;i--){const o=IM[i],w=o.s,h=w*o.img.height/o.img.width;if(Math.abs(x-o.x)<w/2&&Math.abs(y-o.y)<h/2){sel=i;drag=[x-o.x,y-o.y];tc.setPointerCapture(e.pointerId);$('isz').value=o.s;break}}thumb()};
 tc.onpointermove=e=>{if(drag&&sel>=0){const[x,y]=pt(e);IM[sel].x=x-drag[0];IM[sel].y=y-drag[1];thumb()}};
@@ -158,5 +181,5 @@ $('rec').onclick=async()=>{const st=C.captureStream(S.fps);if(dst)dst.stream.get
  cur=0;render(0);mr.start();aOn();t0=performance.now();playing=true;$('play').textContent='⏺ Recording...';
  const loop=now=>{cur=Math.min(1,(now-t0)/(S.dur*1000));$('seek').value=cur*1000;render(cur);tmUp();if(cur<1)requestAnimationFrame(loop);else{playing=false;aOff();setTimeout(()=>mr.stop(),300);$('play').textContent='▶ Play'}};requestAnimationFrame(loop)};
 if(location.search.includes('render=1'))document.body.classList.add('render');
-sync();D=parse(S.csv);render(0);thumb();seo();
+setMaps();sync();D=parse(S.csv);render(0);thumb();seo();
 </script></body></html>
