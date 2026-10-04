@@ -18,8 +18,10 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core fonts-liberation fonts-noto-color-emoji
       - run: npm install
       - run: node render.js "$CFG" out "$AUD"
+      - run: ls -la out
       - uses: actions/upload-artifact@v4
         with:
           name: videos
           path: out/*.mp4
+          if-no-files-found: error
           retention-days: 7
