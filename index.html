@@ -2,58 +2,55 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Race Bar Studio</title>
 <style>
-:root{--bg:#0f1220;--p:#171b2e;--l:#262c48;--t:#e8ecff;--m:#8d97c4;--a:#2563eb}
-*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:var(--bg);color:var(--t);display:grid;grid-template-columns:350px 1fr;height:100vh}
-aside{background:var(--p);padding:16px;overflow:auto;border-right:1px solid var(--l)}main{padding:16px;overflow:auto}
-h1{font-size:18px;margin:0 0 12px}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--m);margin:18px 0 8px}
-label{display:block;font-size:12px;color:var(--m);margin:8px 0 3px}
-input,textarea{width:100%;background:#0b0e1b;color:var(--t);border:1px solid var(--l);border-radius:8px;padding:8px;font:inherit}
-input[type=color]{padding:2px;height:34px}input[type=range]{padding:0}textarea{min-height:70px;resize:vertical}
-button{background:var(--a);color:#fff;border:0;border-radius:8px;padding:9px 12px;font:inherit;font-weight:600;cursor:pointer;margin:4px 4px 0 0}
-button.g{background:var(--l)}button:hover{filter:brightness(1.12)}
-canvas{width:100%;border-radius:12px;display:block}#tc{max-width:640px;touch-action:none;cursor:move}
-.bar{display:flex;gap:8px;align-items:center;margin:10px 0}.bar input{flex:1}
-.card{background:var(--p);border:1px solid var(--l);border-radius:12px;padding:14px;margin-top:14px}
+:root{--bg:#fafaf9;--p:#fff;--l:#e7e5e4;--t:#1c1917;--m:#78716c;--a:#2563eb}
+*{box-sizing:border-box}body{margin:0;font:13px/1.4 system-ui,sans-serif;background:var(--bg);color:var(--t);height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--p);border-bottom:1px solid var(--l)}header b{flex:1;font-size:15px}
+.app{flex:1;display:grid;grid-template-columns:340px 1fr;min-height:0}
+aside{background:var(--p);border-right:1px solid var(--l);display:flex;flex-direction:column;min-height:0}
+nav{display:flex;gap:2px;padding:6px 8px;border-bottom:1px solid var(--l);overflow-x:auto}
+nav button{background:none;color:var(--m);padding:6px 9px;font-weight:500}nav button.on{background:#f0efed;color:var(--t)}
+.pane{padding:14px;overflow:auto;flex:1;display:none}.pane.on{display:block}
+main{padding:20px;overflow:auto}#vwrap,#twrap{max-width:1180px;margin:auto}main.th #vwrap,main:not(.th) #twrap{display:none}
+label{display:block;font-size:11px;color:var(--m);margin:10px 0 4px}
+input,textarea{width:100%;background:#fff;color:var(--t);border:1px solid var(--l);border-radius:7px;padding:7px 9px;font:inherit}
+input:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:var(--a)}
+input[type=color]{padding:2px;height:32px}input[type=range]{padding:0}textarea{min-height:64px;resize:vertical}
+button{background:var(--a);color:#fff;border:0;border-radius:7px;padding:7px 11px;font:inherit;font-weight:600;cursor:pointer}
+button.g{background:#f0efed;color:var(--t)}button:hover{filter:brightness(.95)}
+canvas{width:100%;border-radius:10px;display:block;box-shadow:0 1px 4px #0003;background:#fff}#tc{touch-action:none;cursor:move}
+#vbar{display:flex;gap:10px;align-items:center;margin:12px 0}#vbar input{flex:1}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}small{color:var(--m)}
-body.render{display:block}body.render aside,body.render main>*:not(#stage){display:none}body.render main{padding:0}body.render canvas{width:1920px;border-radius:0}
-@media(max-width:900px){body{grid-template-columns:1fr;height:auto}}
+.br{display:grid;grid-template-columns:10px 1fr 1.3fr 34px 30px;gap:6px;align-items:center;margin:5px 0}
+.br i{width:10px;height:10px;border-radius:50%}.br span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.br input{padding:5px 7px}
+.pv{height:24px;display:flex;align-items:center;justify-content:center;font-size:18px}.pv img{height:22px;border-radius:3px}
+.up{margin:0!important;cursor:pointer;text-align:center;background:#f0efed;border-radius:6px;padding:4px;color:var(--t)!important;font-size:13px!important}
+body.render{display:block;height:auto}body.render header,body.render aside,body.render #vbar,body.render #twrap{display:none}body.render .app{display:block}body.render main{padding:0}body.render #vwrap{max-width:none}body.render canvas{width:1920px;border-radius:0;box-shadow:none}
+@media(max-width:860px){.app{grid-template-columns:1fr}}
 </style></head><body>
-<aside>
-<h1>🏁 Race Bar Studio</h1>
-<label>CSV file</label><input type="file" id="file" accept=".csv,.txt">
-<button class="g" id="sample">Use sample data</button><button class="g" id="dlsample">Download sample CSV</button>
-<small><br>Wide: <code>date,A,B,C</code> per period row. Long: <code>date,name,value</code>.</small>
-<h2>Video</h2><div id="fields"></div>
-<h2>Bar icons</h2>
-<label>Upload images named like each series (e.g. Japan.png, Instagram.png)</label><input type="file" id="icons" accept="image/*" multiple>
-<label>Or emoji (one per line: Name=emoji)</label><textarea id="emoji"></textarea>
-<label>Text overlays (one per line: text|x%|y%|size|color)</label>
-<textarea id="overlays" placeholder="SUBSCRIBE FOR MORE!|50|97|28|#e11d48"></textarea>
-<h2>Music</h2>
-<label>Preview file (final render always uses <code>assets/music.mp3</code>)</label><input type="file" id="music" accept="audio/*">
-<div class="row"><div><label>Volume (0–1)</label><input type="number" id="vol" step=".1" min="0" max="1"></div><div><label>Fade-out (sec)</label><input type="number" id="fade" min="0"></div></div>
-<h2>Thumbnail (1280×720)</h2>
-<label>Title (use | for new lines)</label><input id="thTitle">
-<label>Line colors (comma separated)</label><input id="thColors">
-<div class="row"><div><label>Year range</label><input id="thRange"></div><div><label>Badge (top-right)</label><input id="thBadge"></div></div>
+<header><b>🏁 Race Bar Studio</b><button class="g" id="cfg">Download config</button><button id="rec">⏺ Record WebM</button></header>
+<div class="app"><aside>
+<nav id="tabs"><button data-t="data" class="on">Data</button><button data-t="bars">Bars</button><button data-t="style">Style</button><button data-t="audio">Audio</button><button data-t="thumb">Thumbnail</button><button data-t="seo">SEO</button></nav>
+<div class="pane on" id="p_data"><label>CSV file</label><input type="file" id="file" accept=".csv,.txt">
+<div style="margin-top:8px"><button class="g" id="sample">Sample data</button> <button class="g" id="dlsample">Sample CSV</button></div>
+<small><br>Wide: <code>date,A,B,C</code> · Long: <code>date,name,value</code></small></div>
+<div class="pane" id="p_bars"><div class="row"><button class="g" id="auto">Auto-match flags</button><button class="g" id="bulk">Bulk upload</button></div>
+<input type="file" id="icons" multiple accept="image/*" hidden><datalist id="cl"></datalist>
+<small>Type a country (flag) or an emoji, or upload your own image (↑). Images auto-fit the bar height. Bulk upload: file name = series name.</small><div id="barlist"></div></div>
+<div class="pane" id="p_style"><div id="fields"></div><label>Text overlays (text|x%|y%|size|color, one per line)</label><textarea id="overlays" placeholder="SUBSCRIBE FOR MORE!|50|97|28|#e11d48"></textarea></div>
+<div class="pane" id="p_audio"><label>Preview track (final render uses <code>assets/music.mp3</code>)</label><input type="file" id="music" accept="audio/*">
+<div class="row"><div><label>Volume (0–1)</label><input type="number" id="vol" step=".1" min="0" max="1"></div><div><label>Fade-out (sec)</label><input type="number" id="fade" min="0"></div></div></div>
+<div class="pane" id="p_thumb"><label>Title (| = new line)</label><input id="thTitle"><label>Line colors (comma separated)</label><input id="thColors">
+<div class="row"><div><label>Year range</label><input id="thRange"></div><div><label>Badge</label><input id="thBadge"></div></div>
 <label>Bars frame (% of video)</label><input type="number" id="thT" min="0" max="100">
-<label>Add photos / assets (multiple)</label><input type="file" id="imgs" accept="image/*" multiple>
-<label>Selected photo size</label><input type="range" id="isz" min="80" max="1200" value="380">
-<button class="g" id="idel">Delete selected</button><small><br>Drag photos on the preview to position them.</small>
-<button id="mkThumb" style="display:block">Download thumbnail PNG</button>
-<h2>Export</h2>
-<button id="rec">⏺ Record WebM (fast, in browser)</button>
-<button class="g" id="cfg">Download config.json (HD MP4)</button>
+<label>Photos / stickers (multiple)</label><input type="file" id="imgs" accept="image/*" multiple>
+<label>Selected size</label><input type="range" id="isz" min="80" max="1200" value="380">
+<div style="margin-top:8px"><button class="g" id="idel">Delete selected</button> <button id="mkThumb">Download PNG</button></div><small><br>Drag photos on the preview to position.</small></div>
+<div class="pane" id="p_seo"><button class="g" id="gen">Regenerate</button><label>Title</label><input id="sTitle"><label>Description + chapters</label><textarea id="sDesc" style="min-height:200px"></textarea><label>Tags</label><textarea id="sTags"></textarea>
+<div style="margin-top:8px"><button class="g" onclick="cp('sTitle')">Copy title</button> <button class="g" onclick="cp('sDesc')">Copy desc</button> <button class="g" onclick="cp('sTags')">Copy tags</button></div></div>
 </aside>
-<main>
-<div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div>
-<div class="bar"><button id="play">▶ Play</button><input type="range" id="seek" min="0" max="1000" value="0"><span id="tm">0:00</span></div>
-<div class="card"><b>Thumbnail preview</b><br><br><canvas id="tc" width="1280" height="720"></canvas></div>
-<div class="card"><b>YouTube SEO</b> <button class="g" id="gen">Regenerate</button>
-<label>Title</label><input id="sTitle"><label>Description + chapters</label><textarea id="sDesc" style="min-height:180px"></textarea>
-<label>Tags</label><textarea id="sTags"></textarea>
-<button class="g" onclick="cp('sTitle')">Copy title</button><button class="g" onclick="cp('sDesc')">Copy description</button><button class="g" onclick="cp('sTags')">Copy tags</button></div>
-</main>
+<main id="main"><div id="vwrap"><div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div id="vbar"><button id="play">▶ Play</button><input type="range" id="seek" min="0" max="1000" value="0"><span id="tm">0:00</span></div></div>
+<div id="twrap"><canvas id="tc" width="1280" height="720"></canvas></div></main></div>
 <script>
 const $=id=>document.getElementById(id),C=$('c'),X=C.getContext('2d');
 const SAMPLE=`date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram
@@ -67,7 +64,7 @@ const SAMPLE=`date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram
 2022,1900,2600,1900,2900,2500,700
 2023,2000,2700,2300,3000,2700,800
 2024,2200,2800,2700,3050,2900,950`;
-const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',overlays:'',csv:SAMPLE,thTitle:'Biggest|Social Apps|Ever',thColors:'#16a34a,#e11d48,#2563eb',thRange:'2015–2024',thBadge:'2026',thT:100,icons:{},emoji:'Instagram=📸\nYouTube=▶️\nTikTok=🎵\nFacebook=👍\nWhatsApp=💬\nTelegram=✈️',vol:.8,fade:3};
+const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',overlays:'',csv:SAMPLE,thTitle:'Biggest|Social Apps|Ever',thColors:'#16a34a,#e11d48,#2563eb',thRange:'2015–2024',thBadge:'2026',thT:100,icons:{},fl:{},em:{Instagram:'📸',YouTube:'▶️',TikTok:'🎵',Facebook:'👍',WhatsApp:'💬',Telegram:'✈️'},vol:.8,fade:3};
 const BG='#F7F5EF',INK='#1b1f2a',MUT='#6b7280',FF='system-ui,"Noto Sans","Liberation Sans",sans-serif';
 const FD=[['title','Title','text'],['sub','Subtitle','text'],['src','Source note','text'],['unit','Value suffix (e.g. " M")','text'],['topN','Bars shown','number'],['dur','Duration (sec)','number'],['fps','FPS','number'],['accent','Accent color','color']];
 $('fields').innerHTML=FD.map(f=>`<label>${f[1]}</label><input id="f_${f[0]}" type="${f[2]}">`).join('');
@@ -85,13 +82,13 @@ const col=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%360;return`hsl($
 const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,lerp=(a,b,f)=>a+(b-a)*f;
 const fmt=v=>Math.round(v).toLocaleString('en-US')+(S.unit||'');
 let ICON={},EM={};
-function setMaps(){EM={};S.emoji.split('\n').forEach(l=>{const[a,b]=l.split('=');if(b)EM[a.trim().toLowerCase()]=b.trim()})}
+function setMaps(){EM={};for(const[k,v]of Object.entries(S.em||{}))EM[k.toLowerCase()]=v}
 function loadIcons(){ICON={};return Promise.all(Object.entries(S.icons||{}).map(([n,u])=>new Promise(r=>{const i=new Image();i.onload=i.onerror=r;i.src=u;ICON[n.toLowerCase()]=i})))}
 function state(t){const n=D.dates.length,tt=Math.min(1,t/.92),p=n>1?tt*(n-1):0,k=Math.min(Math.floor(p),Math.max(n-2,0)),k2=Math.min(k+1,n-1),f=p-k,e=ease(f),b=D.dates[k2];
  return{p,mx:lerp(D.max[k],D.max[k2],e)||1,lab:(!isNaN(D.dates[k])&&!isNaN(b))?Math.round(lerp(+D.dates[k],+b,f)):D.dates[Math.round(p)],
  items:D.names.map((nm,i)=>({nm,v:lerp(D.vals[k][i],D.vals[k2][i],e),r:lerp(D.ranks[k][i],D.ranks[k2][i],e)}))}}
 const nice=x=>{const p=Math.pow(10,Math.floor(Math.log10(x))),m=x/p;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*p};
-function icon(g,nm,x,y,s){const k=nm.toLowerCase(),im=ICON[k];if(im&&im.naturalWidth){g.drawImage(im,x,y,s,s);return s}if(EM[k]){g.font=`${s*.82}px `+FF;g.textAlign='left';g.fillText(EM[k],x,y+s*.82);return s}return 0}
+function icon(g,nm,x,y,h){const k=nm.toLowerCase(),im=ICON[k];if(im&&im.naturalWidth){const w=Math.min(h*1.6,h*im.naturalWidth/im.naturalHeight);g.save();g.beginPath();g.roundRect(x,y,w,h,h*.1);g.clip();g.drawImage(im,x,y,w,h);g.restore();return w}if(EM[k]){g.font=`${h*.82}px `+FF;g.textAlign='left';g.fillText(EM[k],x,y+h*.82);return h}return 0}
 function wrap(g,txt,w){const L=[];let c='';txt.split(' ').forEach(x=>{const t=c?c+' '+x:x;if(g.measureText(t).width>w&&c){L.push(c);c=x}else c=t});L.push(c);return L}
 function draw(g,w,h,t){
  g.save();g.scale(w/1920,h/1080);g.fillStyle=BG;g.fillRect(0,0,1920,1080);g.textBaseline='alphabetic';
@@ -103,7 +100,7 @@ function draw(g,w,h,t){
   s.items.filter(o=>o.r<N+.6).sort((a,b)=>b.r-a.r).forEach(o=>{
    const y=top+o.r*rh,bh=rh*.76,w2=Math.max(6,o.v/s.mx*mw);g.globalAlpha=Math.max(0,Math.min(1,N+.6-o.r));
    g.fillStyle=col(o.nm);g.beginPath();g.roundRect(x0,y,w2,bh,8);g.fill();
-   const is=icon(g,o.nm,x0+w2+10,y+bh*.04,bh*.92);
+   const is=icon(g,o.nm,x0+w2+10,y,bh);
    g.fillStyle=INK;g.font=`600 ${Math.min(28,bh*.5)}px `+FF;g.textAlign='right';g.fillText(o.nm,x0-14,y+bh*.64);
    g.textAlign='left';g.fillText(fmt(o.v),x0+w2+(is?is+20:14),y+bh*.64);g.globalAlpha=1});
   g.textAlign='right';g.fillStyle=INK;g.font='900 190px '+FF;g.fillText(s.lab,1860,1010);
@@ -121,10 +118,10 @@ function draw(g,w,h,t){
 }
 const render=t=>{draw(X,1920,1080,t);afx(t)};
 window.renderFrame=render;
-window.loadConfig=async c=>{Object.assign(S,c);D=parse(S.csv);setMaps();await loadIcons();sync();render(0)};
-function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);['overlays','emoji','thTitle','thColors','thRange','thBadge','thT','vol','fade'].forEach(i=>$(i).value=S[i])}
+window.loadConfig=async c=>{Object.assign(S,c);D=parse(S.csv);setMaps();await loadIcons();sync();buildBars();render(0)};
+function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);['overlays','thTitle','thColors','thRange','thBadge','thT','vol','fade'].forEach(i=>$(i).value=S[i])}
 FD.forEach(f=>$('f_'+f[0]).oninput=e=>{S[f[0]]=f[2]==='number'?+e.target.value:e.target.value;render(cur);thumb()});
-['overlays','emoji','thTitle','thColors','thRange','thBadge','thT'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;setMaps();render(cur);thumb()});
+['overlays','thTitle','thColors','thRange','thBadge','thT'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;setMaps();render(cur);thumb()});
 ['vol','fade'].forEach(i=>$(i).oninput=e=>{S[i]=+e.target.value});
 let cur=0,playing=false,t0=0;
 const aud=new Audio();aud.loop=true;let ctx,gn,dst;
@@ -137,7 +134,7 @@ function frame(now){if(!playing)return;cur=Math.min(1,(now-t0)/(S.dur*1000));$('
 function tmUp(){const s=Math.floor(cur*S.dur);$('tm').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 $('play').onclick=()=>{if(playing){playing=false;aOff();$('play').textContent='▶ Play';return}if(cur>=1)cur=0;t0=performance.now()-cur*S.dur*1000;playing=true;aOn();$('play').textContent='⏸ Pause';requestAnimationFrame(frame)};
 $('seek').oninput=e=>{playing=false;aOff();cur=e.target.value/1000;render(cur);tmUp()};
-function load(txt){S.csv=txt;D=parse(txt);cur=0;render(0);thumb();seo()}
+function load(txt){S.csv=txt;D=parse(txt);cur=0;buildBars();render(0);thumb();seo()}
 $('file').onchange=e=>{const r=new FileReader();r.onload=()=>load(r.result);r.readAsText(e.target.files[0])};
 $('sample').onclick=()=>load(SAMPLE);
 const dl=(url,name)=>{const a=document.createElement('a');a.href=url;a.download=name;a.click()};
@@ -148,17 +145,35 @@ const IM=[];let sel=-1,drag=null;const tc=$('tc');
 function thumb(exp){const g=tc.getContext('2d');g.fillStyle=BG;g.fillRect(0,0,1280,720);
  if(D){const s=state(S.thT/100),N=9,rh=705/N;
   s.items.filter(o=>o.r<N).sort((a,b)=>b.r-a.r).forEach(o=>{const y=8+o.r*rh,bh=rh*.86,w=Math.max(30,o.v/s.mx*1000);g.fillStyle=col(o.nm);g.beginPath();g.roundRect(-20,y,w+20,bh,12);g.fill();
-   const is=icon(g,o.nm,w+10,y+bh*.04,bh*.92);g.fillStyle=INK;g.font=`900 ${bh*.42}px `+FF;g.textAlign='left';g.fillText(fmt(o.v),w+20+is,y+bh*.66)})}
+   const is=icon(g,o.nm,w+10,y,bh);g.fillStyle=INK;g.font=`900 ${bh*.42}px `+FF;g.textAlign='left';g.fillText(fmt(o.v),w+20+is,y+bh*.66)})}
  IM.forEach((o,i)=>{const w=o.s,h=w*o.img.height/o.img.width;g.save();g.shadowColor='rgba(0,0,0,.3)';g.shadowBlur=26;g.drawImage(o.img,o.x-w/2,o.y-h/2,w,h);g.restore();
   if(i===sel&&!exp){g.strokeStyle=S.accent;g.lineWidth=4;g.strokeRect(o.x-w/2,o.y-h/2,w,h)}});
  g.lineJoin='round';g.textAlign='left';g.font='900 104px '+FF;g.lineWidth=18;g.strokeStyle='#fff';const cs=S.thColors.split(',');
  S.thTitle.split('|').forEach((l,i)=>{g.fillStyle=(cs[i%cs.length]||INK).trim();g.strokeText(l,690,380+i*112);g.fillText(l,690,380+i*112)});
  g.textAlign='right';g.font='900 96px '+FF;g.strokeStyle='#fff';g.lineWidth=16;g.fillStyle=INK;g.strokeText(S.thRange,1250,700);g.fillText(S.thRange,1250,700);
  if(S.thBadge){g.save();g.translate(1110,115);g.rotate(-.1);g.beginPath();g.roundRect(-125,-62,250,124,34);g.fillStyle='#6d28d9';g.fill();g.lineWidth=10;g.strokeStyle='#fff';g.stroke();g.textAlign='center';g.font='900 92px '+FF;g.fillStyle='#fff';g.fillText(S.thBadge,0,32);g.restore()}}
-$('icons').onchange=async e=>{for(const f of e.target.files){const base=f.name.replace(/\.[^.]+$/,''),nm=(D&&D.names.find(n=>n.toLowerCase()===base.toLowerCase()))||base;
- const img=await new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=URL.createObjectURL(f)});const c=document.createElement('canvas');c.width=c.height=96;
- const k=Math.min(96/img.width,96/img.height),w=img.width*k,h=img.height*k;c.getContext('2d').drawImage(img,(96-w)/2,(96-h)/2,w,h);S.icons[nm]=c.toDataURL('image/png')}
- await loadIcons();render(cur);thumb()};
+// ---- bars: flags / emoji / custom images ----
+const CC='us:United States,gb:United Kingdom,ca:Canada,au:Australia,nz:New Zealand,de:Germany,fr:France,it:Italy,es:Spain,pt:Portugal,nl:Netherlands,be:Belgium,ch:Switzerland,at:Austria,se:Sweden,no:Norway,dk:Denmark,fi:Finland,ie:Ireland,pl:Poland,cz:Czechia,hu:Hungary,ro:Romania,gr:Greece,tr:Turkey,ru:Russia,ua:Ukraine,cn:China,jp:Japan,kr:South Korea,kp:North Korea,in:India,pk:Pakistan,bd:Bangladesh,id:Indonesia,my:Malaysia,sg:Singapore,th:Thailand,vn:Vietnam,ph:Philippines,tw:Taiwan,hk:Hong Kong,sa:Saudi Arabia,ae:United Arab Emirates,il:Israel,ir:Iran,iq:Iraq,eg:Egypt,za:South Africa,ng:Nigeria,ke:Kenya,et:Ethiopia,ma:Morocco,dz:Algeria,gh:Ghana,br:Brazil,ar:Argentina,mx:Mexico,co:Colombia,cl:Chile,pe:Peru,ve:Venezuela,uy:Uruguay,cu:Cuba,kz:Kazakhstan,qa:Qatar,kw:Kuwait,hr:Croatia,rs:Serbia,bg:Bulgaria,sk:Slovakia,is:Iceland,lk:Sri Lanka,np:Nepal,af:Afghanistan,tz:Tanzania,ug:Uganda,sn:Senegal,ec:Ecuador,bo:Bolivia,py:Paraguay,cr:Costa Rica,pa:Panama,do:Dominican Republic,jm:Jamaica';
+const CT={usa:'us',uk:'gb','united states of america':'us','great britain':'gb',uae:'ae','czech republic':'cz',korea:'kr','russian federation':'ru'};
+CC.split(',').forEach(x=>{const[c,n]=x.split(':');CT[n.toLowerCase()]=c});
+$('cl').innerHTML=CC.split(',').map(x=>`<option value="${x.split(':')[1]}">`).join('');
+const fc=v=>CT[v.trim().toLowerCase()];
+const toURL=(src,cors)=>new Promise((res,rej)=>{const i=new Image();if(cors)i.crossOrigin='anonymous';i.onload=()=>{const k=Math.min(1,160/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/png'))};i.onerror=rej;i.src=src});
+const refresh=async()=>{await loadIcons();setMaps();buildBars();render(cur);thumb()};
+async function setIcon(nm,src,cors,q){try{S.icons[nm]=await toURL(src,cors);delete S.em[nm]}catch(e){alert('Could not load image for '+nm)}if(!q)await refresh()}
+function buildBars(){const el=$('barlist');el.innerHTML='';if(!D)return;
+ D.names.forEach(nm=>{const r=document.createElement('div');r.className='br';
+  r.innerHTML='<i></i><span></span><input list="cl" placeholder="Flag / emoji"><b class="pv"></b><label class="up">↑<input type="file" accept="image/*" hidden></label>';
+  r.children[0].style.background=col(nm);r.children[1].textContent=nm;const inp=r.children[2],pv=r.children[3];inp.value=S.fl[nm]||S.em[nm]||'';
+  if(S.icons[nm]){const im=new Image();im.src=S.icons[nm];pv.append(im)}else pv.textContent=S.em[nm]||'';
+  inp.onchange=async()=>{const v=inp.value.trim(),c=fc(v);delete S.icons[nm];delete S.em[nm];delete S.fl[nm];
+   if(c){S.fl[nm]=v;await setIcon(nm,`https://flagcdn.com/w80/${c}.png`,true)}else{if(v)S.em[nm]=v;await refresh()}};
+  r.children[4].querySelector('input').onchange=e=>{const f=e.target.files[0];if(f){delete S.fl[nm];setIcon(nm,URL.createObjectURL(f))}};
+  el.append(r)})}
+$('auto').onclick=async()=>{await Promise.all(D.names.filter(n=>fc(n)).map(n=>{S.fl[n]=n;return setIcon(n,`https://flagcdn.com/w80/${fc(n)}.png`,true,true)}));await refresh()};
+$('bulk').onclick=()=>$('icons').click();
+$('icons').onchange=async e=>{for(const f of e.target.files){const b=f.name.replace(/\.[^.]+$/,''),nm=D.names.find(n=>n.toLowerCase()===b.toLowerCase());if(nm){delete S.fl[nm];await setIcon(nm,URL.createObjectURL(f),false,true)}}await refresh()};
+$('tabs').onclick=e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b===e.target));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p_'+t));$('main').classList.toggle('th',t==='thumb')};
 const pt=e=>{const r=tc.getBoundingClientRect();return[(e.clientX-r.left)*1280/r.width,(e.clientY-r.top)*720/r.height]};
 tc.onpointerdown=e=>{const[x,y]=pt(e);sel=-1;for(let i=IM.length-1;i>=0;i--){const o=IM[i],w=o.s,h=w*o.img.height/o.img.width;if(Math.abs(x-o.x)<w/2&&Math.abs(y-o.y)<h/2){sel=i;drag=[x-o.x,y-o.y];tc.setPointerCapture(e.pointerId);$('isz').value=o.s;break}}thumb()};
 tc.onpointermove=e=>{if(drag&&sel>=0){const[x,y]=pt(e);IM[sel].x=x-drag[0];IM[sel].y=y-drag[1];thumb()}};
@@ -181,5 +196,5 @@ $('rec').onclick=async()=>{const st=C.captureStream(S.fps);if(dst)dst.stream.get
  cur=0;render(0);mr.start();aOn();t0=performance.now();playing=true;$('play').textContent='⏺ Recording...';
  const loop=now=>{cur=Math.min(1,(now-t0)/(S.dur*1000));$('seek').value=cur*1000;render(cur);tmUp();if(cur<1)requestAnimationFrame(loop);else{playing=false;aOff();setTimeout(()=>mr.stop(),300);$('play').textContent='▶ Play'}};requestAnimationFrame(loop)};
 if(location.search.includes('render=1'))document.body.classList.add('render');
-setMaps();sync();D=parse(S.csv);render(0);thumb();seo();
+setMaps();sync();D=parse(S.csv);buildBars();render(0);thumb();seo();
 </script></body></html>
