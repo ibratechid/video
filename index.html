@@ -112,7 +112,7 @@ function draw(g,w,h,t){
  }
  g.textAlign='left';g.fillStyle=INK;g.font='900 66px '+FF;let y=400;wrap(g,S.title,500).forEach(l=>{g.fillText(l,1390,y);y+=76});
  g.fillStyle=MUT;g.font='500 26px '+FF;wrap(g,S.sub,500).forEach(l=>{g.fillText(l,1392,y);y+=34});
- g.font='500 20px '+FF;g.fillText(S.src,80,1055);
+ g.textAlign='right';g.fillStyle=MUT;g.font='500 18px '+FF;wrap(g,S.src,440).slice(0,2).forEach((l,i)=>g.fillText(l,1860,1040+i*22));
  S.overlays.split('\n').filter(Boolean).forEach(l=>{const[tx,x=50,y=50,sz=32,c=INK]=l.split('|');g.font=`800 ${sz}px `+FF;g.fillStyle=c;g.textAlign='center';g.fillText(tx,1920*x/100,1080*y/100)});
  g.restore();
 }
@@ -148,9 +148,10 @@ function thumb(exp){const g=tc.getContext('2d');g.fillStyle=BG;g.fillRect(0,0,12
    const is=icon(g,o.nm,w+10,y,bh);g.fillStyle=INK;g.font=`900 ${bh*.42}px `+FF;g.textAlign='left';g.fillText(fmt(o.v),w+20+is,y+bh*.66)})}
  IM.forEach((o,i)=>{const w=o.s,h=w*o.img.height/o.img.width;g.save();g.shadowColor='rgba(0,0,0,.3)';g.shadowBlur=26;g.drawImage(o.img,o.x-w/2,o.y-h/2,w,h);g.restore();
   if(i===sel&&!exp){g.strokeStyle=S.accent;g.lineWidth=4;g.strokeRect(o.x-w/2,o.y-h/2,w,h)}});
- g.lineJoin='round';g.textAlign='left';g.font='900 104px '+FF;g.lineWidth=18;g.strokeStyle='#fff';const cs=S.thColors.split(',');
- S.thTitle.split('|').forEach((l,i)=>{g.fillStyle=(cs[i%cs.length]||INK).trim();g.strokeText(l,690,380+i*112);g.fillText(l,690,380+i*112)});
- g.textAlign='right';g.font='900 96px '+FF;g.strokeStyle='#fff';g.lineWidth=16;g.fillStyle=INK;g.strokeText(S.thRange,1250,700);g.fillText(S.thRange,1250,700);
+ const fit=(t,mw,fs)=>{g.font=`900 ${fs}px `+FF;const w=g.measureText(t).width;return w>mw?Math.max(36,Math.floor(fs*mw/w)):fs};
+ g.lineJoin='round';g.lineWidth=18;g.strokeStyle='#fff';const cs=S.thColors.split(','),TL=S.thTitle.split('|').filter(Boolean),fs=Math.min(104,...TL.map(l=>fit(l,590,104))),lh=fs*1.1;
+ g.textAlign='left';g.font=`900 ${fs}px `+FF;TL.forEach((l,i)=>{const y=360+(i-(TL.length-1)/2)*lh+fs*.35;g.fillStyle=(cs[i%cs.length]||INK).trim();g.strokeText(l,660,y);g.fillText(l,660,y)});
+ const f2=fit(S.thRange,590,96);g.textAlign='right';g.font=`900 ${f2}px `+FF;g.lineWidth=16;g.fillStyle=INK;g.strokeText(S.thRange,1250,700);g.fillText(S.thRange,1250,700);
  if(S.thBadge){g.save();g.translate(1110,115);g.rotate(-.1);g.beginPath();g.roundRect(-125,-62,250,124,34);g.fillStyle='#6d28d9';g.fill();g.lineWidth=10;g.strokeStyle='#fff';g.stroke();g.textAlign='center';g.font='900 92px '+FF;g.fillStyle='#fff';g.fillText(S.thBadge,0,32);g.restore()}}
 // ---- bars: flags / emoji / custom images ----
 const CC='us:United States,gb:United Kingdom,ca:Canada,au:Australia,nz:New Zealand,de:Germany,fr:France,it:Italy,es:Spain,pt:Portugal,nl:Netherlands,be:Belgium,ch:Switzerland,at:Austria,se:Sweden,no:Norway,dk:Denmark,fi:Finland,ie:Ireland,pl:Poland,cz:Czechia,hu:Hungary,ro:Romania,gr:Greece,tr:Turkey,ru:Russia,ua:Ukraine,cn:China,jp:Japan,kr:South Korea,kp:North Korea,in:India,pk:Pakistan,bd:Bangladesh,id:Indonesia,my:Malaysia,sg:Singapore,th:Thailand,vn:Vietnam,ph:Philippines,tw:Taiwan,hk:Hong Kong,sa:Saudi Arabia,ae:United Arab Emirates,il:Israel,ir:Iran,iq:Iraq,eg:Egypt,za:South Africa,ng:Nigeria,ke:Kenya,et:Ethiopia,ma:Morocco,dz:Algeria,gh:Ghana,br:Brazil,ar:Argentina,mx:Mexico,co:Colombia,cl:Chile,pe:Peru,ve:Venezuela,uy:Uruguay,cu:Cuba,kz:Kazakhstan,qa:Qatar,kw:Kuwait,hr:Croatia,rs:Serbia,bg:Bulgaria,sk:Slovakia,is:Iceland,lk:Sri Lanka,np:Nepal,af:Afghanistan,tz:Tanzania,ug:Uganda,sn:Senegal,ec:Ecuador,bo:Bolivia,py:Paraguay,cr:Costa Rica,pa:Panama,do:Dominican Republic,jm:Jamaica';
