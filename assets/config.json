@@ -1,0 +1,20 @@
+{
+ "title": "Platform Sosial Media Terbesar",
+ "sub": "Pengguna aktif bulanan (juta) — data ilustrasi",
+ "src": "Sumber: data contoh",
+ "unit": "",
+ "topN": 10,
+ "dur": 30,
+ "fps": 30,
+ "accent": "#f91a1a",
+ "theme": "light",
+ "overlays": "",
+ "csv": "date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram\n2015,400,1000,0,1500,900,60\n2016,550,1200,100,1700,1000,100\n2017,800,1500,250,2000,1300,150\n2018,1000,1900,500,2250,1500,200\n2019,1100,2000,800,2400,1600,300\n2020,1300,2300,1000,2600,2000,400\n2021,1500,2500,1400,2800,2200,550\n2022,1900,2600,1900,2900,2500,700\n2023,2000,2700,2300,3000,2700,800\n2024,2200,2800,2700,3050,2900,950",
+ "thTitle": "SIAPA RAJANYA?",
+ "thSub": "2015–2024",
+ "thColor": "#ffd24d",
+ "thT": 100,
+ "audio": "assets/music.mp3",
+ "vol": 0.8,
+ "fade": 3
+}
