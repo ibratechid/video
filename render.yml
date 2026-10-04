@@ -1,0 +1,27 @@
+name: Render video
+on:
+  workflow_dispatch:
+    inputs:
+      config: {description: 'Path config JSON', default: 'config.json'}
+      audio: {description: 'Path musik (kosong = pakai field audio di config)', default: ''}
+      name: {description: 'Nama file output (tanpa .mp4)', default: 'racebar'}
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      CFG: ${{ inputs.config }}
+      AUD: ${{ inputs.audio }}
+      OUT: ${{ inputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core fonts-liberation
+      - run: npm install
+      - run: node render.js "$CFG" "$OUT.mp4" "$AUD"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.name }}
+          path: ${{ inputs.name }}.mp4
+          retention-days: 7

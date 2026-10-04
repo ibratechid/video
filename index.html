@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Race Bar Studio</title>
+<style>
+:root{--bg:#0b1020;--p:#141a31;--l:#222a4a;--t:#e8ecff;--m:#8d97c4;--a:#5b8cff}
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:var(--bg);color:var(--t);display:grid;grid-template-columns:350px 1fr;height:100vh}
+aside{background:var(--p);padding:16px;overflow:auto;border-right:1px solid var(--l)}
+main{padding:16px;overflow:auto}
+h1{font-size:18px;margin:0 0 12px}h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--m);margin:18px 0 8px}
+label{display:block;font-size:12px;color:var(--m);margin:8px 0 3px}
+input,select,textarea{width:100%;background:#0e1328;color:var(--t);border:1px solid var(--l);border-radius:8px;padding:8px;font:inherit}
+input[type=color]{padding:2px;height:34px}textarea{min-height:70px;resize:vertical}
+button{background:var(--a);color:#fff;border:0;border-radius:8px;padding:9px 12px;font:inherit;font-weight:600;cursor:pointer;margin:4px 4px 0 0}
+button.g{background:var(--l)}button:hover{filter:brightness(1.12)}
+canvas{width:100%;border-radius:12px;background:#000;display:block}
+.bar{display:flex;gap:8px;align-items:center;margin:10px 0}.bar input[type=range]{flex:1;padding:0}
+.card{background:var(--p);border:1px solid var(--l);border-radius:12px;padding:14px;margin-top:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}small{color:var(--m)}
+body.render{display:block}body.render aside,body.render main>*:not(#stage){display:none}body.render main{padding:0}body.render canvas{width:1920px;border-radius:0}
+@media(max-width:900px){body{grid-template-columns:1fr;height:auto}}
+</style></head><body>
+<aside>
+<h1>🏁 Race Bar Studio</h1>
+<label>File CSV</label><input type="file" id="file" accept=".csv,.txt">
+<button class="g" id="sample">Pakai data contoh</button><button class="g" id="dlsample">Unduh contoh CSV</button>
+<small><br>Format wide: <code>date,A,B,C</code> per baris periode. Format long: <code>date,name,value</code>.</small>
+<h2>Video</h2><div id="fields"></div>
+<label>Tema</label><select id="theme"><option value="dark">Dark Navy</option><option value="neon">Neon Purple</option><option value="light">Light Clean</option><option value="sunset">Sunset</option></select>
+<label>Teks tambahan (1 baris: teks|x%|y%|ukuran|warna)</label>
+<textarea id="overlays" placeholder="SUBSCRIBE DULU!|50|96|30|#ffd24d"></textarea>
+<h2>Musik</h2>
+<label>File musik (preview &amp; rekam WebM)</label><input type="file" id="music" accept="audio/*">
+<div class="row"><div><label>Volume (0–1)</label><input type="number" id="vol" step=".1" min="0" max="1"></div><div><label>Fade out (detik)</label><input type="number" id="fade" min="0"></div></div>
+<label>Path musik di repo (untuk render MP4)</label><input id="audio"><small>Taruh file di folder <code>assets/</code> lalu commit.</small>
+<h2>Thumbnail (1280×720)</h2>
+<label>Judul besar</label><input id="thTitle"><label>Badge / sub</label><input id="thSub">
+<div class="row"><div><label>Warna teks</label><input type="color" id="thColor" value="#ffd24d"></div><div><label>Frame (0–100%)</label><input type="number" id="thT" value="100" min="0" max="100"></div></div>
+<button id="mkThumb">Buat & Unduh PNG</button>
+<h2>Export</h2>
+<button id="rec">⏺ Rekam WebM (cepat, browser)</button>
+<button class="g" id="cfg">Unduh config.json (render HD MP4)</button>
+</aside>
+<main>
+<div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div class="bar"><button id="play">▶ Play</button><input type="range" id="seek" min="0" max="1000" value="0"><span id="tm">0:00</span></div>
+<div class="card"><b>Preview thumbnail</b><br><br><canvas id="tc" width="1280" height="720" style="max-width:480px"></canvas></div>
+<div class="card"><b>SEO YouTube</b> <button class="g" id="gen">Generate ulang</button>
+<label>Judul</label><input id="sTitle"><label>Deskripsi + chapters</label><textarea id="sDesc" style="min-height:180px"></textarea>
+<label>Tags</label><textarea id="sTags"></textarea><label>Hashtag</label><input id="sHash">
+<button class="g" onclick="cp('sTitle')">Salin judul</button><button class="g" onclick="cp('sDesc')">Salin deskripsi</button><button class="g" onclick="cp('sTags')">Salin tags</button></div>
+</main>
+<script>
+const $=id=>document.getElementById(id),C=$('c'),X=C.getContext('2d');
+const SAMPLE=`date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram
+2015,400,1000,0,1500,900,60
+2016,550,1200,100,1700,1000,100
+2017,800,1500,250,2000,1300,150
+2018,1000,1900,500,2250,1500,200
+2019,1100,2000,800,2400,1600,300
+2020,1300,2300,1000,2600,2000,400
+2021,1500,2500,1400,2800,2200,550
+2022,1900,2600,1900,2900,2500,700
+2023,2000,2700,2300,3000,2700,800
+2024,2200,2800,2700,3050,2900,950`;
+const S={title:'Platform Sosial Media Terbesar',sub:'Pengguna aktif bulanan (juta) — data ilustrasi',src:'Sumber: data contoh',unit:'',topN:10,dur:30,fps:30,accent:'#5b8cff',theme:'dark',overlays:'',csv:SAMPLE,thTitle:'SIAPA RAJANYA?',thSub:'2015–2024',thColor:'#ffd24d',thT:100,audio:'assets/music.mp3',vol:.8,fade:3};
+const TH={dark:['#0b1020','#1a2350','#e8ecff','#8d97c4'],neon:['#12041f','#3a0b5c','#fff','#c9a8ff'],light:['#f4f6ff','#dfe6ff','#101428','#566'],sunset:['#2b0a1e','#7a2a2a','#fff3e6','#ffb98a']};
+const FD=[['title','Judul','text'],['sub','Subjudul','text'],['src','Sumber','text'],['unit','Satuan nilai (mis. " jt")','text'],['topN','Jumlah bar','number'],['dur','Durasi (detik)','number'],['fps','FPS','number'],['accent','Warna aksen','color']];
+$('fields').innerHTML=FD.map(f=>`<label>${f[1]}</label><input id="f_${f[0]}" type="${f[2]}">`).join('');
+let D=null;
+function parse(txt){
+ const R=txt.trim().split(/\r?\n/).map(r=>r.split(/[,;\t]/).map(s=>s.trim().replace(/^"|"$/g,'')));
+ const h=R[0];let dates=[],names=[],vals=[];
+ if(h.length===3&&/name|nama|entity/i.test(h[1])){
+  const m={},ns=new Set();R.slice(1).forEach(r=>{(m[r[0]]=m[r[0]]||{})[r[1]]=+r[2]||0;ns.add(r[1])});
+  names=[...ns];dates=Object.keys(m);dates.sort((a,b)=>isNaN(a)||isNaN(b)?a.localeCompare(b):a-b);
+  vals=dates.map(d=>names.map(n=>m[d][n]||0));
+ }else{names=h.slice(1);R.slice(1).forEach(r=>{dates.push(r[0]);vals.push(names.map((_,i)=>+r[i+1]||0))})}
+ const ranks=vals.map(v=>{const o=v.map((x,i)=>i).sort((a,b)=>v[b]-v[a]),r=[];o.forEach((i,k)=>r[i]=k);return r});
+ return{dates,names,vals,ranks,max:vals.map(v=>Math.max(...v))};
+}
+const col=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%360;return`hsl(${h},72%,58%)`};
+const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,lerp=(a,b,f)=>a+(b-a)*f;
+const fmt=v=>Math.round(v).toLocaleString('id-ID')+(S.unit||'');
+function ov(g,txt){txt.split('\n').filter(Boolean).forEach(l=>{const[t,x=50,y=50,s=32,c='#fff']=l.split('|');g.font=`800 ${s}px system-ui`;g.fillStyle=c;g.textAlign='center';g.fillText(t,1920*x/100,1080*y/100)})}
+function draw(g,w,h,t){
+ g.save();g.scale(w/1920,h/1080);const th=TH[S.theme]||TH.dark;
+ const gr=g.createLinearGradient(0,0,1920,1080);gr.addColorStop(0,th[0]);gr.addColorStop(1,th[1]);g.fillStyle=gr;g.fillRect(0,0,1920,1080);
+ g.textBaseline='alphabetic';g.textAlign='left';g.fillStyle=th[2];g.font='800 56px system-ui';g.fillText(S.title,80,95);
+ g.fillStyle=th[3];g.font='500 28px system-ui';g.fillText(S.sub,80,142);
+ if(D){
+  const n=D.dates.length,tt=Math.min(1,t/.92),p=n>1?tt*(n-1):0,k=Math.min(Math.floor(p),Math.max(n-2,0)),k2=Math.min(k+1,n-1),f=p-k,e=ease(f);
+  const N=+S.topN,top=215,rh=(1080-top-120)/N,x0=430,mw=1250,mx=lerp(D.max[k],D.max[k2],f)||1;
+  const items=D.names.map((nm,i)=>({nm,i,v:lerp(D.vals[k][i],D.vals[k2][i],e),r:lerp(D.ranks[k][i],D.ranks[k2][i],e)})).filter(o=>o.r<N+.6).sort((a,b)=>b.r-a.r);
+  items.forEach(o=>{
+   const y=top+o.r*rh,bh=rh*.74,w2=Math.max(6,o.v/mx*mw);g.globalAlpha=Math.max(0,Math.min(1,N+.6-o.r));
+   g.fillStyle=col(o.nm);g.beginPath();g.roundRect(x0,y,w2,bh,10);g.fill();
+   g.fillStyle=th[2];g.font=`700 ${Math.min(30,bh*.55)}px system-ui`;g.textAlign='right';g.fillText(o.nm,x0-16,y+bh*.66);
+   g.textAlign='left';g.fillText(fmt(o.v),x0+w2+14,y+bh*.66);g.globalAlpha=1;
+  });
+  const a=D.dates[Math.round(p)],b=D.dates[k2],lab=(!isNaN(D.dates[k])&&!isNaN(b))?Math.floor(lerp(+D.dates[k],+b,f)+(f>.5?.0:0)):a;
+  g.textAlign='right';g.fillStyle=th[2];g.globalAlpha=.9;g.font='900 170px system-ui';g.fillText(lab,1850,1030);g.globalAlpha=1;
+  // clock
+  const cx=1780,cy=110,r=62,ang=p*Math.PI*2;
+  g.strokeStyle=S.accent;g.lineWidth=5;g.beginPath();g.arc(cx,cy,r,0,7);g.stroke();
+  for(let i=0;i<12;i++){const q=i*Math.PI/6;g.beginPath();g.moveTo(cx+Math.sin(q)*(r-10),cy-Math.cos(q)*(r-10));g.lineTo(cx+Math.sin(q)*(r-3),cy-Math.cos(q)*(r-3));g.lineWidth=3;g.stroke()}
+  [[ang,r-14,4],[ang/12,r-30,6]].forEach(([q,l,wd])=>{g.strokeStyle=th[2];g.lineWidth=wd;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.sin(q)*l,cy-Math.cos(q)*l);g.stroke()});
+  const sec=Math.floor(t*S.dur);g.fillStyle=th[3];g.font='600 24px ui-monospace,monospace';g.textAlign='center';g.fillText(Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'),cx,cy+r+34);
+ }
+ g.textAlign='left';g.fillStyle=th[3];g.font='500 22px system-ui';g.fillText(S.src,80,1040);
+ ov(g,S.overlays);g.restore();
+}
+function render(t){draw(X,1920,1080,t);afx(t)}
+window.renderFrame=render;
+window.loadConfig=c=>{Object.assign(S,c);D=parse(S.csv);sync();render(0)};
+function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);$('theme').value=S.theme;$('overlays').value=S.overlays;$('thTitle').value=S.thTitle;$('thSub').value=S.thSub;$('thColor').value=S.thColor;$('thT').value=S.thT;$('vol').value=S.vol;$('fade').value=S.fade;$('audio').value=S.audio}
+FD.forEach(f=>$('f_'+f[0]).oninput=e=>{S[f[0]]=f[2]==='number'?+e.target.value:e.target.value;render(cur)});
+$('theme').onchange=e=>{S.theme=e.target.value;render(cur)};
+$('overlays').oninput=e=>{S.overlays=e.target.value;render(cur)};
+['thTitle','thSub','thColor','thT'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;thumb()});
+['vol','fade'].forEach(i=>$(i).oninput=e=>{S[i]=+e.target.value});$('audio').oninput=e=>{S.audio=e.target.value};
+let cur=0,playing=false,t0=0;
+const aud=new Audio();aud.loop=true;let ctx,gn,dst;
+$('music').onchange=e=>{const f=e.target.files[0];if(!f)return;aud.src=URL.createObjectURL(f);
+ if(!ctx){ctx=new AudioContext();const sr=ctx.createMediaElementSource(aud);gn=ctx.createGain();dst=ctx.createMediaStreamDestination();sr.connect(gn);gn.connect(ctx.destination);gn.connect(dst)}
+ if(!S.audio)S.audio='assets/'+f.name;$('audio').value=S.audio};
+function afx(t){if(gn)gn.gain.value=S.vol*Math.min(1,Math.max(0,(1-t)*S.dur/Math.max(S.fade,.01)))}
+function aOn(){if(!ctx||!aud.src)return;aud.currentTime=(cur*S.dur)%(aud.duration||1e9);ctx.resume();aud.play()}
+function aOff(){aud.pause()}
+function frame(now){if(!playing)return;cur=Math.min(1,(now-t0)/(S.dur*1000));$('seek').value=cur*1000;render(cur);tmUp();if(cur>=1){playing=false;aOff();$('play').textContent='▶ Play'}else requestAnimationFrame(frame)}
+function tmUp(){const s=Math.floor(cur*S.dur);$('tm').textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+$('play').onclick=()=>{if(playing){playing=false;aOff();$('play').textContent='▶ Play';return}if(cur>=1)cur=0;t0=performance.now()-cur*S.dur*1000;playing=true;aOn();$('play').textContent='⏸ Pause';requestAnimationFrame(frame)};
+$('seek').oninput=e=>{playing=false;aOff();cur=e.target.value/1000;render(cur);tmUp()};
+function load(txt){S.csv=txt;D=parse(txt);cur=0;render(0);thumb();seo()}
+$('file').onchange=e=>{const r=new FileReader();r.onload=()=>load(r.result);r.readAsText(e.target.files[0])};
+$('sample').onclick=()=>load(SAMPLE);
+const dl=(url,name)=>{const a=document.createElement('a');a.href=url;a.download=name;a.click()};
+$('dlsample').onclick=()=>dl(URL.createObjectURL(new Blob([SAMPLE])),'sample.csv');
+$('cfg').onclick=()=>dl(URL.createObjectURL(new Blob([JSON.stringify(S,null,1)])),'config.json');
+function thumb(){const g=$('tc').getContext('2d');draw(g,1280,720,S.thT/100);g.fillStyle='rgba(0,0,0,.55)';g.fillRect(0,0,1280,720);
+ g.textAlign='center';g.lineJoin='round';g.font='900 130px system-ui';g.lineWidth=14;g.strokeStyle='#000';g.fillStyle=S.thColor;
+ S.thTitle.split('\\n').forEach((l,i)=>{g.strokeText(l,640,330+i*140);g.fillText(l,640,330+i*140)});
+ g.font='800 54px system-ui';g.fillStyle='#fff';g.fillRect(0,0,0,0);g.strokeText(S.thSub,640,560);g.fillText(S.thSub,640,560)}
+$('mkThumb').onclick=()=>{thumb();dl($('tc').toDataURL('image/png'),'thumbnail.png')};
+function ts(sec){return Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0')}
+function seo(){if(!D)return;const n=D.dates.length,lead=D.vals.map(v=>D.names[v.indexOf(Math.max(...v))]),fin=D.vals[n-1],top=D.names.map((x,i)=>[x,fin[i]]).sort((a,b)=>b[1]-a[1]).slice(0,3).map(a=>a[0]);
+ const ch=[];const m=Math.min(8,n);for(let i=0;i<m;i++){const k=Math.round(i*(n-1)/Math.max(m-1,1));ch.push(`${ts(k/Math.max(n-1,1)*.92*S.dur)} ${D.dates[k]} — #1 ${lead[k]}`)}
+ $('sTitle').value=`${S.title} (${D.dates[0]}–${D.dates[n-1]}) | Bar Chart Race`;
+ $('sDesc').value=`${S.title} dari ${D.dates[0]} sampai ${D.dates[n-1]}. Di akhir, posisi teratas: ${top.join(', ')}.\n${S.sub}\n\n⏱ Chapters\n${ch.join('\n')}\n\n${S.src}\nSuka videonya? Like, subscribe, dan komen prediksimu!\n\n#barchartrace #datavisualization #${top[0].replace(/\W/g,'')}`;
+ $('sTags').value=[...new Set([...D.names.slice(0,12),...S.title.toLowerCase().split(/\s+/).filter(w=>w.length>3),'bar chart race','data visualization','race chart','statistik','perbandingan data'])].join(', ');
+ $('sHash').value='#barchartrace #datavisualization #'+top[0].replace(/\W/g,'').toLowerCase()}
+$('gen').onclick=seo;
+window.cp=id=>navigator.clipboard.writeText($(id).value);
+$('rec').onclick=async()=>{const st=C.captureStream(S.fps);if(dst)dst.stream.getAudioTracks().forEach(t=>st.addTrack(t));const mr=new MediaRecorder(st,{mimeType:'video/webm;codecs=vp9,opus',videoBitsPerSecond:14e6}),ch=[];
+ mr.ondataavailable=e=>ch.push(e.data);mr.onstop=()=>dl(URL.createObjectURL(new Blob(ch,{type:'video/webm'})),'racebar.webm');
+ cur=0;render(0);mr.start();aOn();t0=performance.now();playing=true;$('play').textContent='⏺ Merekam...';
+ const loop=now=>{cur=Math.min(1,(now-t0)/(S.dur*1000));$('seek').value=cur*1000;render(cur);tmUp();if(cur<1)requestAnimationFrame(loop);else{playing=false;aOff();setTimeout(()=>mr.stop(),300);$('play').textContent='▶ Play'}};requestAnimationFrame(loop)};
+if(location.search.includes('render=1'))document.body.classList.add('render');
+sync();D=parse(S.csv);render(0);thumb();seo();
+</script></body></html>
