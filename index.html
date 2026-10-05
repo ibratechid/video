@@ -56,6 +56,7 @@ body.render{display:block;height:auto;background:#fff}body.render header,body.re
 <div id="twrap"><canvas id="tc" width="1280" height="720"></canvas></div></main></div>
 <div id="toast"></div>
 <script>
+if(!CanvasRenderingContext2D.prototype.roundRect)CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){r=Math.max(0,Math.min(r,Math.abs(w)/2,Math.abs(h)/2));this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);this.closePath()};
 const $=id=>document.getElementById(id),C=$('c'),X=C.getContext('2d');
 const SAMPLE=`date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram
 2015,400,1000,0,1500,900,60
@@ -110,7 +111,7 @@ function draw(g,w,h,t){
    g.fillStyle=INK;g.font=`600 ${Math.min(28,bh*.5)}px `+FF;g.textAlign='right';g.fillText(cut(g,o.nm,x0-34),x0-14,y+bh*.64);
    g.textAlign='left';g.fillText(fmt(o.v),x0+w2+(is?is+20:14),y+bh*.64);g.globalAlpha=1});
   g.textAlign='right';g.fillStyle=INK;g.font='900 190px '+FF;g.fillText(s.lab,1860,1010);
-  const cx=1330,cy=935,r=62,ang=s.p*Math.PI*2;
+  const cx=Math.max(1180,Math.min(1330,1860-g.measureText(String(s.lab)).width-100)),cy=935,r=62,ang=s.p*Math.PI*2;
   g.fillStyle='#fff';g.strokeStyle=MUT;g.lineWidth=7;g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.stroke();
   for(let i=0;i<12;i++){const q=i*Math.PI/6;g.beginPath();g.moveTo(cx+Math.sin(q)*(r-12),cy-Math.cos(q)*(r-12));g.lineTo(cx+Math.sin(q)*(r-5),cy-Math.cos(q)*(r-5));g.lineWidth=3;g.stroke()}
   [[ang,r-15,5],[ang/12,r-30,7]].forEach(([q,l,wd])=>{g.strokeStyle=INK;g.lineWidth=wd;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.sin(q)*l,cy-Math.cos(q)*l);g.stroke()});
@@ -122,13 +123,13 @@ function draw(g,w,h,t){
  S.overlays.split('\n').filter(Boolean).forEach(l=>{const[tx,x=50,y=50,sz=32,c=INK]=l.split('|');g.font=`800 ${sz}px `+FF;g.fillStyle=c;g.textAlign='center';g.fillText(tx,1920*x/100,1080*y/100)});
  g.restore();
 }
-const render=t=>{draw(X,1920,1080,t);afx(t)};
+const render=t=>{try{draw(X,1920,1080,t)}catch(e){X.setTransform(1,0,0,1,0,0);console.error(e);toast('Draw error: '+e.message)}try{afx(t)}catch(e){}};
 window.renderFrame=render;
 window.loadConfig=async c=>{Object.assign(S,c);D=parse(S.csv);$('csvEd').value=S.csv;setMaps();await loadIcons();sync();buildBars();render(0)};
 function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);['overlays','thTitle','thColors','thRange','thBadge','thT','thCta','thCtaC','vol','fade'].forEach(i=>$(i).value=S[i])}
-FD.forEach(f=>$('f_'+f[0]).oninput=e=>{S[f[0]]=f[2]==='number'?+e.target.value:e.target.value;render(cur);auto()});
+FD.forEach(f=>{const el=$('f_'+f[0]);el.oninput=e=>{if(f[2]==='number'){const v=+e.target.value;if(e.target.value===''||isNaN(v)||v<(f[0]==='rad'?0:1))return;S[f[0]]=v}else S[f[0]]=e.target.value;render(cur);auto()};el.onchange=()=>{el.value=S[f[0]]}});
 ['overlays','thTitle','thColors','thRange','thBadge','thT','thCta','thCtaC'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;if(['thTitle','thRange','thBadge'].includes(i))S.manual[i]=true;setMaps();render(cur);thumb()});
-['vol','fade'].forEach(i=>$(i).oninput=e=>{S[i]=+e.target.value});
+['vol','fade'].forEach(i=>$(i).oninput=e=>{S[i]=Math.max(0,+e.target.value||0)});
 let cur=0,playing=false,t0=0;
 const aud=new Audio();aud.loop=true;let ctx,gn,dst;
 $('music').onchange=e=>{const f=e.target.files[0];if(!f)return;aud.src=URL.createObjectURL(f);
@@ -165,13 +166,13 @@ function cta(g,exp){if(!S.thCta){CB=null;return}g.save();g.font='900 46px '+FF;c
  if(selC&&!exp){g.setLineDash([10,8]);g.lineWidth=3;g.strokeStyle=S.accent;g.strokeRect(x-8,y-8,w+16,h+16)}g.restore()}
 // ---- bars: flags / emoji / custom images ----
 const CC='us:United States,gb:United Kingdom,ca:Canada,au:Australia,nz:New Zealand,de:Germany,fr:France,it:Italy,es:Spain,pt:Portugal,nl:Netherlands,be:Belgium,ch:Switzerland,at:Austria,se:Sweden,no:Norway,dk:Denmark,fi:Finland,ie:Ireland,pl:Poland,cz:Czechia,hu:Hungary,ro:Romania,gr:Greece,tr:Turkey,ru:Russia,ua:Ukraine,cn:China,jp:Japan,kr:South Korea,kp:North Korea,in:India,pk:Pakistan,bd:Bangladesh,id:Indonesia,my:Malaysia,sg:Singapore,th:Thailand,vn:Vietnam,ph:Philippines,tw:Taiwan,hk:Hong Kong,sa:Saudi Arabia,ae:United Arab Emirates,il:Israel,ir:Iran,iq:Iraq,eg:Egypt,za:South Africa,ng:Nigeria,ke:Kenya,et:Ethiopia,ma:Morocco,dz:Algeria,gh:Ghana,br:Brazil,ar:Argentina,mx:Mexico,co:Colombia,cl:Chile,pe:Peru,ve:Venezuela,uy:Uruguay,cu:Cuba,kz:Kazakhstan,qa:Qatar,kw:Kuwait,hr:Croatia,rs:Serbia,bg:Bulgaria,sk:Slovakia,is:Iceland,lk:Sri Lanka,np:Nepal,af:Afghanistan,tz:Tanzania,ug:Uganda,sn:Senegal,ec:Ecuador,bo:Bolivia,py:Paraguay,cr:Costa Rica,pa:Panama,do:Dominican Republic,jm:Jamaica';
-const CT={usa:'us',uk:'gb','united states of america':'us','great britain':'gb',uae:'ae','czech republic':'cz',korea:'kr','russian federation':'ru'};
+const CT={'u.s.':'us','u.s.a.':'us',america:'us',england:'gb',turkiye:'tr','türkiye':'tr','viet nam':'vn','republic of korea':'kr',usa:'us',uk:'gb','united states of america':'us','great britain':'gb',uae:'ae','czech republic':'cz',korea:'kr','russian federation':'ru'};
 CC.split(',').forEach(x=>{const[c,n]=x.split(':');CT[n.toLowerCase()]=c});
 $('cl').innerHTML=CC.split(',').map(x=>`<option value="${x.split(':')[1]}">`).join('');
 const fc=v=>CT[v.trim().toLowerCase()];
 const toURL=(src,cors)=>new Promise((res,rej)=>{const i=new Image();if(cors)i.crossOrigin='anonymous';i.onload=()=>{const k=Math.min(1,160/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext('2d').drawImage(i,0,0,c.width,c.height);res(c.toDataURL('image/png'))};i.onerror=rej;i.src=src});
 const refresh=async()=>{await loadIcons();setMaps();buildBars();render(cur);thumb()};
-async function setIcon(nm,src,cors,q){try{S.icons[nm]=await toURL(src,cors);delete S.em[nm]}catch(e){alert('Could not load image for '+nm)}if(!q)await refresh()}
+async function setIcon(nm,src,cors,q){let ok=1;try{S.icons[nm]=await toURL(src,cors);delete S.em[nm]}catch(e){ok=0;delete S.fl[nm]}if(!q){await refresh();if(!ok)toast('Could not load the image for '+nm+'. Check your internet connection.')}return ok}
 function buildBars(){const el=$('barlist');el.innerHTML='';if(!D)return;
  D.names.forEach(nm=>{const r=document.createElement('div');r.className='br';
   r.innerHTML='<i></i><span></span><input list="cl" placeholder="Flag / emoji"><b class="pv"></b><label class="up">↑<input type="file" accept="image/*" hidden></label>';
@@ -181,7 +182,7 @@ function buildBars(){const el=$('barlist');el.innerHTML='';if(!D)return;
    if(c){S.fl[nm]=v;await setIcon(nm,`https://flagcdn.com/w80/${c}.png`,true)}else{if(v)S.em[nm]=v;await refresh()}};
   r.children[4].querySelector('input').onchange=e=>{const f=e.target.files[0];if(f){delete S.fl[nm];setIcon(nm,URL.createObjectURL(f))}};
   el.append(r)})}
-$('auto').onclick=async()=>{await Promise.all(D.names.filter(n=>fc(n)).map(n=>{S.fl[n]=n;return setIcon(n,`https://flagcdn.com/w80/${fc(n)}.png`,true,true)}));await refresh()};
+$('auto').onclick=async()=>{const m=D.names.filter(n=>fc(n));if(!m.length)return toast('No country names found in this data. Type a country or emoji per bar instead.');toast('Loading flags…');const r=await Promise.all(m.map(n=>{S.fl[n]=n;return setIcon(n,`https://flagcdn.com/w80/${fc(n)}.png`,true,true)})),ok=r.filter(Boolean).length;await refresh();toast(ok+' of '+m.length+' flags added'+(ok<m.length?' (others failed, check your internet connection)':''))};
 $('bulk').onclick=()=>$('icons').click();
 $('icons').onchange=async e=>{for(const f of e.target.files){const b=f.name.replace(/\.[^.]+$/,''),nm=D.names.find(n=>n.toLowerCase()===b.toLowerCase());if(nm){delete S.fl[nm];await setIcon(nm,URL.createObjectURL(f),false,true)}}await refresh()};
 $('tabs').onclick=e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b===e.target));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p_'+t));$('main').classList.toggle('th',t==='thumb')};
