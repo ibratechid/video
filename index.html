@@ -45,7 +45,7 @@ body.render{display:block;height:auto;background:#fff}body.render header,body.re
 <div class="pane" id="p_thumb"><small>Auto-filled from Style and data. Edit a field to override it.</small><label>Title (| = new line)</label><input id="thTitle"><label>Line colors (comma separated)</label><input id="thColors">
 <div class="row"><div><label>Year range</label><input id="thRange"></div><div><label>Badge</label><input id="thBadge"></div></div>
 <label>Bars frame (% of video)</label><input type="number" id="thT" min="0" max="100">
-<label>Photos / stickers (multiple)</label><input type="file" id="imgs" accept="image/*" multiple>
+<div class="row"><div><label>Button text</label><input id="thCta"></div><div><label>Button color</label><input type="color" id="thCtaC"></div></div><small>Drag the button on the preview to move it. Clear the text to hide it.</small><label>Photos / stickers (multiple)</label><input type="file" id="imgs" accept="image/*" multiple>
 <label>Selected size</label><input type="range" id="isz" min="80" max="1200" value="380">
 <div style="margin-top:8px"><button class="g" id="idel">Delete selected</button> <button class="g" id="thAuto">Reset to auto</button> <button id="mkThumb">Download PNG</button></div><small><br>Drag photos on the preview to position.</small></div>
 <div class="pane" id="p_seo"><button class="g" id="gen">Reset to auto</button> <small>Updates live; edit a field to override.</small><label>Title</label><input id="sTitle"><label>Description + chapters</label><textarea id="sDesc" style="min-height:200px"></textarea><label>Tags</label><textarea id="sTags"></textarea>
@@ -68,7 +68,7 @@ const SAMPLE=`date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram
 2022,1900,2600,1900,2900,2500,700
 2023,2000,2700,2300,3000,2700,800
 2024,2200,2800,2700,3050,2900,950`;
-const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',bg:'#F7F5EF',rad:8,overlays:'',csv:SAMPLE,thTitle:'Biggest|Social Apps|Ever',thColors:'#16a34a,#e11d48,#2563eb',thRange:'2015–2024',thBadge:'2026',thT:100,manual:{},icons:{},fl:{},em:{Instagram:'📸',YouTube:'▶️',TikTok:'🎵',Facebook:'👍',WhatsApp:'💬',Telegram:'✈️'},vol:.8,fade:3};
+const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',bg:'#F7F5EF',rad:8,overlays:'',csv:SAMPLE,thTitle:'Biggest|Social Apps|Ever',thColors:'#16a34a,#e11d48,#2563eb',thRange:'2015–2024',thBadge:'2026',thT:100,thCta:'WATCH NOW',thCtaC:'#e11d48',ctaX:955,ctaY:590,manual:{},icons:{},fl:{},em:{Instagram:'📸',YouTube:'▶️',TikTok:'🎵',Facebook:'👍',WhatsApp:'💬',Telegram:'✈️'},vol:.8,fade:3};
 const INK='#1b1f2a',MUT='#6b7280',FF='system-ui,"Noto Sans","Liberation Sans",sans-serif';
 const FD=[['title','Title','text'],['sub','Subtitle','text'],['src','Source note','text'],['unit','Value suffix (e.g. " M")','text'],['topN','Bars shown','number'],['dur','Duration (sec)','number'],['fps','FPS','number'],['accent','Accent color','color'],['bg','Background','color'],['rad','Bar roundness (px)','number']];
 $('fields').innerHTML=FD.map(f=>`<label>${f[1]}</label><input id="f_${f[0]}" type="${f[2]}">`).join('');
@@ -84,14 +84,14 @@ function parse(txt){
  return{dates,names,vals,ranks,max:vals.map(v=>Math.max(...v))};
 }
 const col=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%360;return`hsl(${h},68%,52%)`};
-const ease=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2,lerp=(a,b,f)=>a+(b-a)*f;
+const HOLD=.96,ease=x=>x*x*(3-2*x),lerp=(a,b,f)=>a+(b-a)*f;
 const fmt=v=>Math.round(v).toLocaleString('en-US')+(S.unit||'');
 let ICON={},EM={};
 function setMaps(){EM={};for(const[k,v]of Object.entries(S.em||{}))EM[k.toLowerCase()]=v}
 function loadIcons(){ICON={};return Promise.all(Object.entries(S.icons||{}).map(([n,u])=>new Promise(r=>{const i=new Image();i.onload=i.onerror=r;i.src=u;ICON[n.toLowerCase()]=i})))}
-function state(t){const n=D.dates.length,tt=Math.min(1,t/.92),p=n>1?tt*(n-1):0,k=Math.min(Math.floor(p),Math.max(n-2,0)),k2=Math.min(k+1,n-1),f=p-k,e=ease(f),b=D.dates[k2];
+function state(t){const n=D.dates.length,tt=Math.min(1,t/HOLD),p=n>1?tt*(n-1):0,k=Math.min(Math.floor(p),Math.max(n-2,0)),k2=Math.min(k+1,n-1),f=p-k,e=ease(f),b=D.dates[k2];
  return{p,mx:lerp(D.max[k],D.max[k2],e)||1,lab:(!isNaN(D.dates[k])&&!isNaN(b))?Math.round(lerp(+D.dates[k],+b,f)):D.dates[Math.round(p)],
- items:D.names.map((nm,i)=>({nm,v:lerp(D.vals[k][i],D.vals[k2][i],e),r:lerp(D.ranks[k][i],D.ranks[k2][i],e)}))}}
+ items:D.names.map((nm,i)=>({nm,v:lerp(D.vals[k][i],D.vals[k2][i],f),r:lerp(D.ranks[k][i],D.ranks[k2][i],e)}))}}
 const nice=x=>{const p=Math.pow(10,Math.floor(Math.log10(x))),m=x/p;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*p};
 function icon(g,nm,x,y,h){const k=nm.toLowerCase(),im=ICON[k];if(im&&im.naturalWidth){const w=Math.min(h*1.6,h*im.naturalWidth/im.naturalHeight);g.save();g.beginPath();g.roundRect(x,y,w,h,h*.1);g.clip();g.drawImage(im,x,y,w,h);g.restore();return w}if(EM[k]){g.font=`${h*.82}px `+FF;g.textAlign='left';g.fillText(EM[k],x,y+h*.82);return h}return 0}
 const cut=(g,t,w)=>{if(g.measureText(t).width<=w)return t;while(t.length>1&&g.measureText(t+'…').width>w)t=t.slice(0,-1);return t+'…'};
@@ -125,9 +125,9 @@ function draw(g,w,h,t){
 const render=t=>{draw(X,1920,1080,t);afx(t)};
 window.renderFrame=render;
 window.loadConfig=async c=>{Object.assign(S,c);D=parse(S.csv);$('csvEd').value=S.csv;setMaps();await loadIcons();sync();buildBars();render(0)};
-function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);['overlays','thTitle','thColors','thRange','thBadge','thT','vol','fade'].forEach(i=>$(i).value=S[i])}
+function sync(){FD.forEach(f=>$('f_'+f[0]).value=S[f[0]]);['overlays','thTitle','thColors','thRange','thBadge','thT','thCta','thCtaC','vol','fade'].forEach(i=>$(i).value=S[i])}
 FD.forEach(f=>$('f_'+f[0]).oninput=e=>{S[f[0]]=f[2]==='number'?+e.target.value:e.target.value;render(cur);auto()});
-['overlays','thTitle','thColors','thRange','thBadge','thT'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;if(['thTitle','thRange','thBadge'].includes(i))S.manual[i]=true;setMaps();render(cur);thumb()});
+['overlays','thTitle','thColors','thRange','thBadge','thT','thCta','thCtaC'].forEach(i=>$(i).oninput=e=>{S[i]=e.target.value;if(['thTitle','thRange','thBadge'].includes(i))S.manual[i]=true;setMaps();render(cur);thumb()});
 ['vol','fade'].forEach(i=>$(i).oninput=e=>{S[i]=+e.target.value});
 let cur=0,playing=false,t0=0;
 const aud=new Audio();aud.loop=true;let ctx,gn,dst;
@@ -147,7 +147,7 @@ const dl=(url,name)=>{const a=document.createElement('a');a.href=url;a.download=
 $('dlsample').onclick=()=>dl(URL.createObjectURL(new Blob([SAMPLE])),'sample.csv');
 $('cfg').onclick=()=>dl(URL.createObjectURL(new Blob([JSON.stringify(S,null,1)])),'video-01.json');
 // thumbnail with draggable photos
-const IM=[];let sel=-1,drag=null;const tc=$('tc');
+const IM=[];let sel=-1,drag=null,selC=false,CB=null;const tc=$('tc');
 function thumb(exp){const g=tc.getContext('2d');g.fillStyle=S.bg;g.fillRect(0,0,1280,720);
  if(D){const s=state(S.thT/100),N=9,rh=705/N;
   s.items.filter(o=>o.r<N).sort((a,b)=>b.r-a.r).forEach(o=>{const y=8+o.r*rh,bh=rh*.86,w=Math.max(30,o.v/s.mx*1000);g.fillStyle=col(o.nm);g.beginPath();g.roundRect(-20,y,w+20,bh,12);g.fill();
@@ -158,7 +158,11 @@ function thumb(exp){const g=tc.getContext('2d');g.fillStyle=S.bg;g.fillRect(0,0,
  g.lineJoin='round';g.lineWidth=18;g.strokeStyle='#fff';const cs=S.thColors.split(','),TL=S.thTitle.split('|').filter(Boolean),fs=Math.min(104,...TL.map(l=>fit(l,590,104))),lh=fs*1.1;
  g.textAlign='left';g.font=`900 ${fs}px `+FF;TL.forEach((l,i)=>{const y=360+(i-(TL.length-1)/2)*lh+fs*.35;g.fillStyle=(cs[i%cs.length]||INK).trim();g.strokeText(l,660,y);g.fillText(l,660,y)});
  const f2=fit(S.thRange,590,96);g.textAlign='right';g.font=`900 ${f2}px `+FF;g.lineWidth=16;g.fillStyle=INK;g.strokeText(S.thRange,1250,700);g.fillText(S.thRange,1250,700);
- if(S.thBadge){g.save();g.translate(1110,115);g.rotate(-.1);g.beginPath();g.roundRect(-125,-62,250,124,34);g.fillStyle='#6d28d9';g.fill();g.lineWidth=10;g.strokeStyle='#fff';g.stroke();g.textAlign='center';g.font='900 92px '+FF;g.fillStyle='#fff';g.fillText(S.thBadge,0,32);g.restore()}}
+ if(S.thBadge){g.save();g.translate(1110,115);g.rotate(-.1);g.beginPath();g.roundRect(-125,-62,250,124,34);g.fillStyle='#6d28d9';g.fill();g.lineWidth=10;g.strokeStyle='#fff';g.stroke();g.textAlign='center';g.font='900 92px '+FF;g.fillStyle='#fff';g.fillText(S.thBadge,0,32);g.restore()}cta(g,exp)}
+function cta(g,exp){if(!S.thCta){CB=null;return}g.save();g.font='900 46px '+FF;const w=g.measureText(S.thCta).width+150,h=88,x=S.ctaX-w/2,y=S.ctaY-h/2;CB={w,h};
+ g.shadowColor='rgba(0,0,0,.35)';g.shadowBlur=22;g.shadowOffsetY=8;g.beginPath();g.roundRect(x,y,w,h,44);g.fillStyle=S.thCtaC;g.fill();g.shadowColor='transparent';g.lineWidth=7;g.strokeStyle='#fff';g.stroke();
+ g.fillStyle='#fff';g.beginPath();g.moveTo(x+34,y+h/2-20);g.lineTo(x+34,y+h/2+20);g.lineTo(x+68,y+h/2);g.closePath();g.fill();g.textAlign='left';g.fillText(S.thCta,x+88,y+h/2+16);
+ if(selC&&!exp){g.setLineDash([10,8]);g.lineWidth=3;g.strokeStyle=S.accent;g.strokeRect(x-8,y-8,w+16,h+16)}g.restore()}
 // ---- bars: flags / emoji / custom images ----
 const CC='us:United States,gb:United Kingdom,ca:Canada,au:Australia,nz:New Zealand,de:Germany,fr:France,it:Italy,es:Spain,pt:Portugal,nl:Netherlands,be:Belgium,ch:Switzerland,at:Austria,se:Sweden,no:Norway,dk:Denmark,fi:Finland,ie:Ireland,pl:Poland,cz:Czechia,hu:Hungary,ro:Romania,gr:Greece,tr:Turkey,ru:Russia,ua:Ukraine,cn:China,jp:Japan,kr:South Korea,kp:North Korea,in:India,pk:Pakistan,bd:Bangladesh,id:Indonesia,my:Malaysia,sg:Singapore,th:Thailand,vn:Vietnam,ph:Philippines,tw:Taiwan,hk:Hong Kong,sa:Saudi Arabia,ae:United Arab Emirates,il:Israel,ir:Iran,iq:Iraq,eg:Egypt,za:South Africa,ng:Nigeria,ke:Kenya,et:Ethiopia,ma:Morocco,dz:Algeria,gh:Ghana,br:Brazil,ar:Argentina,mx:Mexico,co:Colombia,cl:Chile,pe:Peru,ve:Venezuela,uy:Uruguay,cu:Cuba,kz:Kazakhstan,qa:Qatar,kw:Kuwait,hr:Croatia,rs:Serbia,bg:Bulgaria,sk:Slovakia,is:Iceland,lk:Sri Lanka,np:Nepal,af:Afghanistan,tz:Tanzania,ug:Uganda,sn:Senegal,ec:Ecuador,bo:Bolivia,py:Paraguay,cr:Costa Rica,pa:Panama,do:Dominican Republic,jm:Jamaica';
 const CT={usa:'us',uk:'gb','united states of america':'us','great britain':'gb',uae:'ae','czech republic':'cz',korea:'kr','russian federation':'ru'};
@@ -182,8 +186,8 @@ $('bulk').onclick=()=>$('icons').click();
 $('icons').onchange=async e=>{for(const f of e.target.files){const b=f.name.replace(/\.[^.]+$/,''),nm=D.names.find(n=>n.toLowerCase()===b.toLowerCase());if(nm){delete S.fl[nm];await setIcon(nm,URL.createObjectURL(f),false,true)}}await refresh()};
 $('tabs').onclick=e=>{const t=e.target.dataset.t;if(!t)return;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b===e.target));document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id==='p_'+t));$('main').classList.toggle('th',t==='thumb')};
 const pt=e=>{const r=tc.getBoundingClientRect();return[(e.clientX-r.left)*1280/r.width,(e.clientY-r.top)*720/r.height]};
-tc.onpointerdown=e=>{const[x,y]=pt(e);sel=-1;for(let i=IM.length-1;i>=0;i--){const o=IM[i],w=o.s,h=w*o.img.height/o.img.width;if(Math.abs(x-o.x)<w/2&&Math.abs(y-o.y)<h/2){sel=i;drag=[x-o.x,y-o.y];tc.setPointerCapture(e.pointerId);$('isz').value=o.s;break}}thumb()};
-tc.onpointermove=e=>{if(drag&&sel>=0){const[x,y]=pt(e);IM[sel].x=x-drag[0];IM[sel].y=y-drag[1];thumb()}};
+tc.onpointerdown=e=>{const[x,y]=pt(e);sel=-1;selC=false;if(CB&&Math.abs(x-S.ctaX)<CB.w/2&&Math.abs(y-S.ctaY)<CB.h/2){selC=true;drag=[x-S.ctaX,y-S.ctaY];tc.setPointerCapture(e.pointerId);thumb();return}for(let i=IM.length-1;i>=0;i--){const o=IM[i],w=o.s,h=w*o.img.height/o.img.width;if(Math.abs(x-o.x)<w/2&&Math.abs(y-o.y)<h/2){sel=i;drag=[x-o.x,y-o.y];tc.setPointerCapture(e.pointerId);$('isz').value=o.s;break}}thumb()};
+tc.onpointermove=e=>{if(drag&&selC){const[x,y]=pt(e);S.ctaX=x-drag[0];S.ctaY=y-drag[1];thumb();return}if(drag&&sel>=0){const[x,y]=pt(e);IM[sel].x=x-drag[0];IM[sel].y=y-drag[1];thumb()}};
 tc.onpointerup=()=>drag=null;
 $('isz').oninput=e=>{if(sel>=0){IM[sel].s=+e.target.value;thumb()}};
 $('idel').onclick=()=>{if(sel>=0){IM.splice(sel,1);sel=-1;thumb()}};
@@ -196,7 +200,7 @@ function auto(){if(D){const n=D.dates.length,a=D.dates[0],b=D.dates[n-1],v={thTi
   for(const k in v)if(!S.manual[k]){S[k]=v[k];$(k).value=v[k]}}
  seo();thumb()}
 function seo(){if(!D)return;const n=D.dates.length,a=D.dates[0],b=D.dates[n-1],lead=D.vals.map(v=>D.names[v.indexOf(Math.max(...v))]),fin=D.vals[n-1],top=D.names.map((x,i)=>[x,fin[i]]).sort((x,y)=>y[1]-x[1]).slice(0,3).map(x=>x[0]);
- const ch=[],m=Math.min(8,n);for(let i=0;i<m;i++){const k=Math.round(i*(n-1)/Math.max(m-1,1));ch.push(`${ts(k/Math.max(n-1,1)*.92*S.dur)} ${D.dates[k]} — #1 ${lead[k]}`)}
+ const ch=[],m=Math.min(8,n);for(let i=0;i<m;i++){const k=Math.round(i*(n-1)/Math.max(m-1,1));ch.push(`${ts(k/Math.max(n-1,1)*HOLD*S.dur)} ${D.dates[k]} — #1 ${lead[k]}`)}
  const V={sTitle:`${S.title} (${a}–${b}) | Bar Chart Race`.slice(0,100),
   sDesc:`${S.title} from ${a} to ${b}. Who ends up on top? ${top.join(', ')} lead the final ranking.\n${S.sub}\n\n⏱ Chapters\n${ch.join('\n')}\n\n${S.src}\nEnjoyed this? Like, subscribe, and tell us your prediction in the comments!\n\n#barchartrace #datavisualization #${top[0].replace(/\W/g,'').toLowerCase()}`,
   sTags:[...new Set([...D.names.slice(0,12),...S.title.toLowerCase().split(/\s+/).filter(w=>w.length>3),'bar chart race','data visualization','ranking over time','statistics','data race'])].join(', ')};
