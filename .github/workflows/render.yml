@@ -1,36 +1,27 @@
-// node render.js <config.json | folder> [outDir=out] [audio=assets/music.mp3]   (ALLOW_SILENT=1 to render without music)
-const fs=require('fs'),path=require('path'),{spawn}=require('child_process'),puppeteer=require('puppeteer');
-const fail=m=>{console.error('\nERROR: '+m);process.exit(1)};
-(async()=>{
-  const [inp,outDir='out',audioArg]=process.argv.slice(2);
-  if(!inp)fail('Usage: node render.js <config.json|folder> [outDir] [audio]');
-  if(!fs.existsSync(inp))fail('Config not found: '+inp);
-  const files=fs.statSync(inp).isDirectory()?fs.readdirSync(inp).filter(f=>f.endsWith('.json')).sort().map(f=>path.join(inp,f)):[inp];
-  if(!files.length)fail('No .json configs in '+inp);
-  fs.mkdirSync(outDir,{recursive:true});
-  const audio=audioArg||'assets/music.mp3',hasA=fs.existsSync(audio);
-  if(!hasA&&process.env.ALLOW_SILENT!=='1')fail(`Music not found: ${audio}. Commit it to the repo, or run with silent=true.`);
-  console.log(hasA?'Music: '+audio:'Rendering WITHOUT music');
-  const b=await puppeteer.launch({args:['--no-sandbox']});
-  const pg=await b.newPage();await pg.setViewport({width:1920,height:1080});
-  await pg.goto('file://'+path.resolve(__dirname,'index.html')+'?render=1',{waitUntil:'networkidle2'});
-  for(const f of files){
-    const cfg=JSON.parse(fs.readFileSync(f)),out=path.join(outDir,path.basename(f,'.json')+'.mp4');
-    const fps=+cfg.fps||30,total=Math.round((+cfg.dur||30)*fps),dur=total/fps,fd=+cfg.fade||0;
-    const args=['-y','-f','image2pipe','-framerate',fps,'-c:v','png','-i','-'];
-    if(hasA)args.push('-stream_loop','-1','-i',audio,'-map','0:v','-map','1:a','-t',dur,
-      '-af',`volume=${cfg.vol??0.8},afade=t=out:st=${Math.max(0,dur-fd)}:d=${fd||0.01}`,'-c:a','aac','-b:a','192k','-ar','48000');
-    args.push('-vf','scale=out_color_matrix=bt709:out_range=tv,format=yuv420p','-c:v','libx264','-preset','medium','-crf','14','-profile:v','high','-level','4.2',
-      '-g',fps*2,'-bf','2','-colorspace','bt709','-color_primaries','bt709','-color_trc','bt709','-movflags','+faststart',out);
-    const ff=spawn('ffmpeg',args.map(String),{stdio:['pipe','inherit','inherit']});ff.stdin.on('error',()=>{});
-    console.log('Rendering',f,'->',out);
-    await pg.evaluate(c=>window.loadConfig(c),cfg);
-    for(let i=0;i<total;i++){
-      const d=await pg.evaluate(t=>{window.renderFrame(t);return document.getElementById('c').toDataURL('image/png').split(',')[1]},i/(total-1));
-      if(!ff.stdin.write(Buffer.from(d,'base64')))await new Promise(r=>ff.stdin.once('drain',r));
-      if(i%fps===0)process.stdout.write(`\r${i}/${total}`);
-    }
-    ff.stdin.end();const code=await new Promise(r=>ff.on('close',r));if(code!==0)fail('ffmpeg exited with code '+code);console.log('\nDone:',out);
-  }
-  await b.close();
-})();
+name: Render videos
+on:
+  workflow_dispatch:
+    inputs:
+      config: {description: 'Config file OR folder (folder = render all .json inside)', default: 'configs'}
+      audio: {description: 'Music file (same for all videos)', default: 'assets/music.mp3'}
+      silent: {description: 'Allow render without music', type: boolean, default: false}
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      CFG: ${{ inputs.config }}
+      AUD: ${{ inputs.audio }}
+      ALLOW_SILENT: ${{ inputs.silent && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-core fonts-liberation fonts-noto-color-emoji
+      - run: npm install
+      - run: node render.js "$CFG" out "$AUD"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: videos
+          path: out/*.mp4
+          retention-days: 7
