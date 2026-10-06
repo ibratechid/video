@@ -65,9 +65,9 @@ const SAMPLE=`date,Instagram,YouTube,TikTok,Facebook,WhatsApp,Telegram
 2022,1900,2600,1900,2900,2500,700
 2023,2000,2700,2300,3000,2700,800
 2024,2200,2800,2700,3050,2900,950`;
-const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',overlays:'',csv:SAMPLE,thTitle:'Biggest|Social Apps|Ever',thColors:'#16a34a,#e11d48,#2563eb',thRange:'2015–2024',thBadge:'2026',thT:100,manual:{},hook:'',cta:'Subscribe for new rankings every week',chan:'Top Rank Daily',intro:3.5,outro:8,pre:'',base:'',icons:{},fl:{},em:{Instagram:'📸',YouTube:'▶️',TikTok:'🎵',Facebook:'👍',WhatsApp:'💬',Telegram:'✈️'},vol:.8,fade:3};
+const S={title:'Largest Social Media Platforms',sub:'Monthly active users (millions) — sample data',src:'Source: sample data',unit:'',topN:10,dur:30,fps:30,accent:'#2563eb',overlays:'',csv:SAMPLE,thTitle:'Biggest|Social Apps|Ever',thColors:'#16a34a,#e11d48,#2563eb',thRange:'2015–2024',thBadge:'2026',thT:100,manual:{},clks:62,clkx:0,clky:0,hook:'',cta:'Subscribe for new rankings every week',chan:'Top Rank Daily',intro:3.5,outro:8,pre:'',base:'',icons:{},fl:{},em:{Instagram:'📸',YouTube:'▶️',TikTok:'🎵',Facebook:'👍',WhatsApp:'💬',Telegram:'✈️'},vol:.8,fade:3};
 const BG='#F7F5EF',INK='#1b1f2a',MUT='#6b7280',FF='Inter,system-ui,"Noto Sans","Liberation Sans",sans-serif';
-const FD=[['title','Title','text'],['sub','Subtitle','text'],['src','Source note','text'],['unit','Value suffix (e.g. " M")','text'],['topN','Bars shown','number'],['dur','Duration (sec)','number'],['fps','FPS','number'],['accent','Accent color','color'],['pre','Value prefix (e.g. $)','text'],['base','Data unit',['','K','M','B','T']],['intro','Intro (sec)','number'],['outro','Outro (sec)','number'],['hook','Intro hook text','text'],['chan','Channel name','text'],['cta','Outro call-to-action','text']];
+const FD=[['title','Title','text'],['sub','Subtitle','text'],['src','Source note','text'],['unit','Value suffix (e.g. " M")','text'],['topN','Bars shown','number'],['dur','Duration (sec)','number'],['fps','FPS','number'],['accent','Accent color','color'],['clks','Clock size (radius px)','number'],['clkx','Clock X offset (px, - = left)','number'],['clky','Clock Y offset (px, - = up)','number'],['pre','Value prefix (e.g. $)','text'],['base','Data unit',['','K','M','B','T']],['intro','Intro (sec)','number'],['outro','Outro (sec)','number'],['hook','Intro hook text','text'],['chan','Channel name','text'],['cta','Outro call-to-action','text']];
 $('fields').innerHTML=FD.map(f=>`<label>${f[1]}</label>`+(Array.isArray(f[2])?`<select id="f_${f[0]}">${f[2].map(o=>`<option value="${o}">${o||'none'}</option>`).join('')}</select>`:`<input id="f_${f[0]}" type="${f[2]}">`)).join('');
 let D=null;
 function splitRow(l,d){const o=[];let c='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){c+='"';i++}else q=!q}else if(ch===d&&!q){o.push(c.trim());c=''}else c+=ch}o.push(c.trim());return o}
@@ -112,10 +112,10 @@ function draw(g,w,h,t){
    g.fillStyle=INK;g.font=`600 ${Math.min(28,bh*.5)}px `+FF;g.textAlign='right';g.fillText(o.nm,x0-14,y+bh*.64);
    g.textAlign='left';g.fillText(fmt(o.v),x0+w2+(is?is+20:14),y+bh*.64);g.globalAlpha=1});
   g.textAlign='right';g.fillStyle=INK;g.font='900 190px '+FF;g.fillText(s.lab,1860,1010);
-  const cx=1330,cy=935,r=62,ang=s.p*Math.PI*2;
+  const yw=Math.max(g.measureText('0000').width,g.measureText(String(s.lab)).width),r=+S.clks||62,k=r/62,cx=1860-yw-30-r+(+S.clkx||0),cy=935+(+S.clky||0),ang=s.p*Math.PI*2;
   g.fillStyle='#fff';g.strokeStyle=MUT;g.lineWidth=7;g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.stroke();
-  for(let i=0;i<12;i++){const q=i*Math.PI/6;g.beginPath();g.moveTo(cx+Math.sin(q)*(r-12),cy-Math.cos(q)*(r-12));g.lineTo(cx+Math.sin(q)*(r-5),cy-Math.cos(q)*(r-5));g.lineWidth=3;g.stroke()}
-  [[ang,r-15,5],[ang/12,r-30,7]].forEach(([q,l,wd])=>{g.strokeStyle=INK;g.lineWidth=wd;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.sin(q)*l,cy-Math.cos(q)*l);g.stroke()});
+  for(let i=0;i<12;i++){const q=i*Math.PI/6;g.beginPath();g.moveTo(cx+Math.sin(q)*(r-12*k),cy-Math.cos(q)*(r-12*k));g.lineTo(cx+Math.sin(q)*(r-5*k),cy-Math.cos(q)*(r-5*k));g.lineWidth=3;g.stroke()}
+  [[ang,r-15*k,5*k],[ang/12,r-30*k,7*k]].forEach(([q,l,wd])=>{g.strokeStyle=INK;g.lineWidth=wd;g.lineCap='round';g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.sin(q)*l,cy-Math.cos(q)*l);g.stroke()});
   const sc=Math.floor(sec);g.fillStyle=MUT;g.font='600 22px ui-monospace,monospace';g.textAlign='center';g.fillText(Math.floor(sc/60)+':'+String(sc%60).padStart(2,'0'),cx,cy+r+32);
  }
  g.textAlign='left';g.fillStyle=INK;g.font='900 66px '+FF;let y=400;wrap(g,S.title,500).forEach(l=>{g.fillText(l,1390,y);y+=76});
